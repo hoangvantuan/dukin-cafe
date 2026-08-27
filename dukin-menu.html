@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>DUKIN Cafe — Lờ Át Đu Ca Phê</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#2b1d14;
+    font-family:'Be Vietnam Pro',sans-serif;
+    color:#3a2a1c;
+    display:flex; justify-content:center; padding:24px;
+  }
+  .menu {
+    width:760px; max-width:100%;
+    background:#f6efe3;
+    background-image:radial-gradient(circle at 15% 10%, #fdf8ee 0%, #f6efe3 55%, #efe4d0 100%);
+    border:1px solid #c9a86a;
+    outline:4px double #c9a86a;
+    outline-offset:6px;
+    padding:60px 70px 48px;
+    position:relative;
+  }
+  .corner { position:absolute; font-size:24px; color:#b08d4f; }
+  .corner.tl{top:18px;left:22px} .corner.tr{top:18px;right:22px}
+  .corner.bl{bottom:18px;left:22px} .corner.br{bottom:18px;right:22px}
+  header { text-align:center; margin-bottom:34px; }
+  .brand {
+    font-family:'Playfair Display',serif;
+    font-size:48px; font-weight:700; letter-spacing:5px;
+    color:#4a2f1b;
+  }
+  .brand span { color:#b08d4f; }
+  .tagline {
+    font-family:'Playfair Display',serif; font-style:italic;
+    font-size:20px; color:#8a6a45; margin-top:8px; letter-spacing:1px;
+  }
+  .divider {
+    display:flex; align-items:center; gap:12px;
+    margin:16px auto 0; max-width:400px; color:#b08d4f;
+  }
+  .divider::before, .divider::after {
+    content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,#c9a86a,transparent);
+  }
+  .quote {
+    text-align:center; font-style:italic; font-size:13.5px; font-weight:300;
+    color:#8a7460; max-width:460px; margin:0 auto; line-height:1.8;
+  }
+  .quote.mid { margin:28px auto; }
+  .item {
+    display:flex; align-items:baseline; gap:14px;
+    padding:18px 6px; border-bottom:1px dotted #cfba95;
+  }
+  .item:last-of-type { border-bottom:none; }
+  .num {
+    font-family:'Playfair Display',serif; font-style:italic;
+    font-size:15px; color:#b08d4f; min-width:26px;
+  }
+  .body { flex:1; }
+  .name {
+    font-family:'Playfair Display',serif;
+    font-size:23px; font-weight:600; color:#4a2f1b; letter-spacing:.5px;
+  }
+  .fr {
+    font-family:'Playfair Display',serif; font-style:italic;
+    font-size:13px; color:#a08356; margin-left:10px;
+  }
+  .desc { font-size:12.5px; color:#7d6a54; margin-top:6px; font-weight:300; line-height:1.6; }
+  .price {
+    font-family:'Playfair Display',serif;
+    font-size:22px; font-weight:700; color:#8a6a45; white-space:nowrap;
+  }
+  footer {
+    text-align:center; margin-top:22px; padding-top:16px;
+    border-top:1px solid #d8c5a2;
+    font-size:11px; color:#a08356; letter-spacing:1.5px;
+  }
+  .order {
+    text-align:center; margin-top:28px; padding:14px 8px;
+    border:1px solid #c9a86a; background:#f1e5cc;
+    font-size:11.5px; font-weight:500; color:#6b4e2e; letter-spacing:.3px; line-height:1.9;
+    white-space:nowrap;
+  }
+  .order .passion {
+    font-family:'Playfair Display',serif; font-style:italic; font-weight:600;
+    font-size:14.5px; color:#8a6a45; letter-spacing:.5px;
+  }
+  @media print {
+    body { background:none; padding:0; display:block; }
+    .menu { outline:none; border:none; margin:0 auto; }
+    @page { size: 215mm 340mm; margin:0; }
+  }
+</style>
+</head>
+<body>
+<div class="menu">
+  <div class="corner tl">❦</div><div class="corner tr">❦</div>
+  <div class="corner bl">❦</div><div class="corner br">❦</div>
+
+  <header>
+    <div class="brand">DUKIN <span>Cafe &amp; Bistro</span></div>
+    <div class="tagline">~ L'Art du Café ~</div>
+    <div class="divider">☕</div>
+  </header>
+
+  <p class="quote">« Cà phê là nghệ thuật, DUKIN là chữ ký. »</p>
+
+  <div class="item">
+    <span class="num">01</span>
+    <div class="body">
+      <div class="name"><b>D.</b> Đen Huyền Bí<span class="fr">Le Noir</span></div>
+      <div class="desc">Phin nhỏ giọt, đắng thanh hậu ngọt. Uống đen cho rõ bụng dạ.</div>
+    </div>
+    <span class="price">20K</span>
+  </div>
+
+  <div class="item">
+    <span class="num">02</span>
+    <div class="body">
+      <div class="name"><b>D.</b> Sữa Đậm Chất<span class="fr">Le Lait</span></div>
+      <div class="desc">Đắng đậm hòa quyện sữa đặc, cân bằng chuẩn gu Sài Gòn xưa.</div>
+    </div>
+    <span class="price">20K</span>
+  </div>
+
+  <div class="item">
+    <span class="num">03</span>
+    <div class="body">
+      <div class="name"><b>D.</b> Bạc Xỉu Mây<span class="fr">Le Nuase</span></div>
+      <div class="desc">Mây sữa tươi ôm lấy chút cà phê phin, nhẹ như tằm thường mà nhớ mãi.</div>
+    </div>
+    <span class="price">25K</span>
+  </div>
+
+  <div class="item">
+    <span class="num">04</span>
+    <div class="body">
+      <div class="name"><b>D.</b> Muối Kem Béo<span class="fr">La Crème Salé</span></div>
+      <div class="desc">Lớp kem muối đánh bông mịn phủ lên cà phê đậm, mặn mà đúng nghĩa chữ đen.</div>
+    </div>
+    <span class="price">30K</span>
+  </div>
+
+  <div class="quote mid">« Chậm một nhịp, đậm một đời. »</div>
+
+  <div class="order">
+    ✦ ĐẶT HÀNG: HÔM TRƯỚC SÁNG HÔM SAU CÓ HÀNG • SÁNG ORDER CHIỀU CÓ HÀNG ✦<br>
+    <span class="passion">Làm vì đam mê, không vì tiền.</span>
+  </div>
+
+  <footer>
+    DUKIN CAFE &amp; BISTRO · L'ART DU CAFÉ · MỞ CỬA 7:00 – 22:30 · GIÁ ĐÃ BAO GỒM THUẾ
+  </footer>
+</div>
+</body>
+</html>
