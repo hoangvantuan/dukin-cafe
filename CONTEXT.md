@@ -81,3 +81,7 @@ _Avoid_: liên hệ, contact
 **Luồng Đơn hàng**:
 Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng.
 _Avoid_: thread, notification, alert
+
+**Bot DUKIN**:
+Ứng dụng Microsoft Teams do quán vận hành, thay quán mở Luồng Đơn hàng, trả lời trạng thái và nhắc Khách.
+_Avoid_: connector, webhook
