@@ -1,0 +1,200 @@
+/* Trang quản lý: trung tính, ưu tiên thao tác nhanh. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+.admin-shell {
+  min-height: 100vh;
+  background: #f2f0ec;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  color: #26211c;
+  padding: 20px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.admin-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.admin-top h1 { font-size: 20px; }
+
+.admin-tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.tab {
+  border: 1px solid #d5cfc6;
+  background: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color: #55504a;
+}
+.tab.active { background: #3c332a; color: #f6efe3; border-color: #3c332a; }
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.toolbar input[type='date'] {
+  border: 1px solid #d5cfc6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
+.btn-dark, .btn-light, .btn-danger {
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-dark { background: #3c332a; color: #f6efe3; }
+.btn-dark:disabled { opacity: 0.5; }
+.btn-light { background: #fff; color: #3c332a; border-color: #d5cfc6; }
+.btn-danger { background: #fff; color: #a33; border-color: #d9b3b3; }
+
+.form-error { color: #a33; font-size: 13px; margin: 8px 0; }
+.ok-msg { color: #2a7a3f; font-size: 13.5px; }
+.muted { color: #8a837a; font-weight: 400; }
+.small { font-size: 12.5px; margin-top: 8px; line-height: 1.6; }
+
+.slot-section { margin-top: 18px; }
+.slot-section h2 { font-size: 16px; margin-bottom: 10px; }
+
+.order-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.order-card {
+  background: #fff;
+  border: 1px solid #e2ddd4;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.order-card.is-cancelled { opacity: 0.55; }
+.order-card header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.order-card header b { font-size: 15px; }
+
+.status { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.st-new { background: #3d6fa8; }
+.st-confirmed { background: #b07d2b; }
+.st-paid { background: #7a5aa8; }
+.st-done { background: #2a7a3f; }
+.st-cancelled { background: #999; }
+
+.badge {
+  font-size: 11px;
+  border: 1px solid #d5cfc6;
+  color: #77706a;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.badge.warn { border-color: #d9b3b3; color: #a33; }
+
+.order-body p { font-size: 13.5px; margin-bottom: 4px; }
+.order-body ul { margin: 4px 0 4px 18px; font-size: 13.5px; }
+.order-body .note { color: #6b5f4d; font-style: italic; }
+.order-body .meta { color: #8a837a; font-size: 12.5px; }
+.order-card footer { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+.manual-card, .edit-card {
+  background: #fff;
+  border: 1px solid #e2ddd4;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.manual-card h3, .edit-card h3 { font-size: 15px; margin-bottom: 12px; }
+.edit-card h4 { font-size: 13.5px; margin: 14px 0 8px; }
+
+.manual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+.manual-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #55504a; }
+.manual-grid .span2 { grid-column: span 2; }
+.manual-grid input, .manual-grid select {
+  border: 1px solid #d5cfc6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #55504a; }
+
+.manual-items { margin: 10px 0 14px; display: flex; flex-direction: column; gap: 6px; }
+.manual-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  border-bottom: 1px dotted #e2ddd4;
+  padding: 4px 0;
+}
+.qty-ctrl { display: inline-flex; align-items: center; gap: 8px; }
+.qty-ctrl button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #d5cfc6;
+  background: #fff;
+  cursor: pointer;
+  font-size: 15px;
+}
+.qty-ctrl b { min-width: 18px; text-align: center; }
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e2ddd4;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13.5px;
+}
+.admin-table th, .admin-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #eee9e0; }
+.admin-table th { background: #f7f4ef; font-size: 12.5px; color: #6b655d; }
+.admin-table input { border: 1px solid #d5cfc6; border-radius: 6px; padding: 6px 8px; font-family: inherit; font-size: 13px; width: 100%; min-width: 160px; }
+.row-actions { display: flex; gap: 6px; }
+
+.group-edit { border: 1px solid #eee9e0; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.group-edit-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.group-edit-head input { border: 1px solid #d5cfc6; border-radius: 6px; padding: 7px 10px; font-family: inherit; flex: 1; min-width: 160px; }
+.option-edit { display: flex; gap: 8px; margin-bottom: 6px; }
+.option-edit input { border: 1px solid #d5cfc6; border-radius: 6px; padding: 7px 10px; font-family: inherit; }
+.option-edit input:first-child { flex: 1; }
+.option-edit input:nth-child(2) { width: 130px; }
+
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+
+.settings-grid { display: flex; flex-direction: column; gap: 4px; }
+.settings-grid .manual-grid { margin-bottom: 4px; }
+
+.login-shell { display: flex; align-items: center; justify-content: center; }
+.login-card {
+  background: #fff;
+  border: 1px solid #e2ddd4;
+  border-radius: 12px;
+  padding: 28px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-card h1 { font-size: 18px; }
+.login-card input {
+  border: 1px solid #d5cfc6;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 15px;
+}
