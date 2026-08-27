@@ -1,6 +1,6 @@
 # DUKIN Cafe & Bistro
 
-Ngữ cảnh bán hàng theo mô hình đặt trước (pre-order) và quản lý đơn hàng cà phê của DUKIN Cafe & Bistro, "Lờ Át Đu Ca Phê".
+Ngữ cảnh bán hàng theo mô hình đặt trước (pre-order) trong phạm vi công ty cho đồng nghiệp, và quản lý đơn hàng cà phê của DUKIN Cafe & Bistro, "Lờ Át Đu Ca Phê".
 
 ## Ngôn ngữ
 
@@ -31,8 +31,8 @@ Yêu cầu đặt trước của một Khách, gồm các Món kèm Tùy chọn,
 _Avoid_: hóa đơn, đơn mua, bill
 
 **Khách**:
-Người đặt Đơn hàng, định danh bằng tên và số điện thoại.
-_Avoid_: user, tài khoản
+Đồng nghiệp đặt Đơn hàng trong phạm vi công ty.
+_Avoid_: user, tài khoản, khách vãng lai
 
 **Kênh đặt hàng**:
 Nơi Đơn hàng phát sinh: Trang bán (Khách tự đặt) hoặc Zalo (chủ quán Nhập hộ).
@@ -59,13 +59,21 @@ Khách đến quán lấy Đơn hàng trong Khung nhận hàng.
 _Avoid_: pickup
 
 **Giao tận nơi**:
-Quán mang Đơn hàng đến địa chỉ của Khách trong Khung nhận hàng.
+Quán mang Đơn hàng đến vị trí của Khách trong công ty trong Khung nhận hàng, miễn phí.
 _Avoid_: delivery, ship
+
+**Vị trí giao**:
+Nơi Khách hẹn nhận Đơn hàng khi Giao tận nơi (tầng, phòng, số bàn).
+_Avoid_: địa chỉ
 
 **Trạng thái Đơn hàng**:
 Một trong: Mới, Đã xác nhận, Đã thu tiền, Hoàn tất, Đã hủy; chỉ chủ quán thực hiện việc chuyển trạng thái.
 _Avoid_: pending, processing, done
 
-**Thanh toán chuyển khoản**:
-Cách thu tiền: Khách tự chuyển theo mã QR khi đặt, chủ quán xác nhận đã nhận trên Trang quản lý.
+**Cách thanh toán**:
+Chuyển khoản theo mã QR khi đặt, hoặc tiền mặt khi nhận hàng.
 _Avoid_: thanh toán trực tuyến, cổng thanh toán
+
+**Báo đơn mới**:
+Thông báo tự động gửi vào nhóm Microsoft Teams khi có Đơn hàng mới.
+_Avoid_: notification, alert
