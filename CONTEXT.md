@@ -21,7 +21,7 @@ Một đồ uống bán cho Khách, có tên tiếng Việt, tên tiếng Pháp,
 _Avoid_: sản phẩm, item
 
 **Tùy chọn**:
-Thuộc tính có cấu trúc của một Món (ví dụ kích cỡ, đá, đường), do chủ quán định nghĩa.
+Thuộc tính có cấu trúc của một Món (ví dụ kích cỡ, đá, đường), do chủ quán định nghĩa; mỗi lựa chọn có thể cộng thêm vào giá Món.
 _Avoid_: topping, biến thể
 
 ### Đặt hàng
@@ -35,12 +35,36 @@ Người đặt Đơn hàng, định danh bằng tên và số điện thoại.
 _Avoid_: user, tài khoản
 
 **Kênh đặt hàng**:
-Nơi Đơn hàng phát sinh: Trang bán (Khách tự đặt) hoặc Zalo (chủ quán nhập hộ).
+Nơi Đơn hàng phát sinh: Trang bán (Khách tự đặt) hoặc Zalo (chủ quán Nhập hộ).
 _Avoid_: nguồn, funnel
+
+**Nhập hộ**:
+Việc chủ quán tạo Đơn hàng thay Khách từ kênh Zalo.
+_Avoid_: đơn chèn, đơn tay
 
 **Khung nhận hàng**:
 Khoảng thời gian trong ngày mà Khách hẹn nhận Đơn hàng.
 _Avoid_: giờ giao, slot
+
+**Giờ chốt đơn**:
+Mốc trong ngày mà sau đó Đơn hàng mới chỉ có thể hẹn Khung nhận hàng của hôm sau.
+_Avoid_: deadline, cut-off
+
+**Cách nhận hàng**:
+Lựa chọn của Khách khi đặt: Nhận tại quán hoặc Giao tận nơi.
+_Avoid_: phương thức giao, ship
+
+**Nhận tại quán**:
+Khách đến quán lấy Đơn hàng trong Khung nhận hàng.
+_Avoid_: pickup
+
+**Giao tận nơi**:
+Quán mang Đơn hàng đến địa chỉ của Khách trong Khung nhận hàng.
+_Avoid_: delivery, ship
+
+**Trạng thái Đơn hàng**:
+Một trong: Mới, Đã xác nhận, Đã thu tiền, Hoàn tất, Đã hủy; chỉ chủ quán thực hiện việc chuyển trạng thái.
+_Avoid_: pending, processing, done
 
 **Thanh toán chuyển khoản**:
 Cách thu tiền: Khách tự chuyển theo mã QR khi đặt, chủ quán xác nhận đã nhận trên Trang quản lý.
