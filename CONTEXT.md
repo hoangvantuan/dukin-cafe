@@ -31,7 +31,7 @@ Yêu cầu đặt trước của một Khách, gồm các Món kèm Tùy chọn,
 _Avoid_: hóa đơn, đơn mua, bill
 
 **Khách**:
-Đồng nghiệp đặt Đơn hàng trong phạm vi công ty.
+Đồng nghiệp đặt Đơn hàng trong phạm vi công ty, định danh bằng tên.
 _Avoid_: user, tài khoản, khách vãng lai
 
 **Kênh đặt hàng**:
@@ -74,6 +74,10 @@ _Avoid_: pending, processing, done
 Chuyển khoản theo mã QR khi đặt, hoặc tiền mặt khi nhận hàng.
 _Avoid_: thanh toán trực tuyến, cổng thanh toán
 
-**Báo đơn mới**:
-Thông báo tự động gửi vào nhóm Microsoft Teams khi có Đơn hàng mới.
-_Avoid_: notification, alert
+**Danh bạ Khách**:
+Danh sách tên Khách quen kèm mã người dùng Microsoft Teams, chủ quán tự cấu hình tay để nhắc Khách trong Luồng Đơn hàng.
+_Avoid_: liên hệ, contact
+
+**Luồng Đơn hàng**:
+Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng.
+_Avoid_: thread, notification, alert

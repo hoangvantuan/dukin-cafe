@@ -1,0 +1,3 @@
+# Tự vận hành bằng Docker Compose thay vì dịch vụ quản lý
+
+Hệ thống đặt hàng DUKIN chạy trên máy chủ của chính quán theo mô hình tự vận hành (self-host) bằng Docker Compose: một dịch vụ Fastify với SQLite, một CaddyTLS. Đã cân nhắc Supabase/Firebase (miễn phí, có xác thực và realtime sẵn) nhưng chọn tự vận hành để không phụ thuộc nhà cung cấp, dữ liệu đơn nằm trong tay quán, và chủ quán là lập trình viên nên gánh nặng vận hành chấp nhận được. Quy mô bán trong phạm vi công ty nên một container với SQLite là đủ; đường nâng cấp khi vượt mức là chuyển sang PostgreSQL.
