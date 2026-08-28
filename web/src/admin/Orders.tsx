@@ -3,32 +3,32 @@ import { api, fmtVnd, vnToday, type PlaceOrderBody } from '../api'
 import type { AdminOrder, MenuItem, OrderStatus, SlotOffer } from '../types'
 
 /** Bước chuyển tiếp chủ quán bấm được, khớp ALLOWED_TRANSITIONS phía máy chủ. */
-const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: string }>> = {
+const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: string; btnClass: string }>> = {
   new: [
-    { target: 'confirmed', label: 'Xác nhận' },
-    { target: 'paid', label: 'Đã thu tiền' },
-    { target: 'done', label: 'Hoàn tất' },
-    { target: 'cancelled', label: 'Hủy' },
+    { target: 'confirmed', label: '✓ Xác nhận', btnClass: 'btn-st-confirm' },
+    { target: 'paid', label: '💵 Thu tiền', btnClass: 'btn-st-paid' },
+    { target: 'done', label: '☕ Hoàn tất', btnClass: 'btn-st-done' },
+    { target: 'cancelled', label: '✕ Hủy', btnClass: 'btn-st-cancel' },
   ],
   confirmed: [
-    { target: 'paid', label: 'Đã thu tiền' },
-    { target: 'done', label: 'Hoàn tất' },
-    { target: 'cancelled', label: 'Hủy' },
+    { target: 'paid', label: '💵 Đã thu tiền', btnClass: 'btn-st-paid' },
+    { target: 'done', label: '☕ Hoàn tất', btnClass: 'btn-st-done' },
+    { target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' },
   ],
   paid: [
-    { target: 'done', label: 'Hoàn tất' },
-    { target: 'cancelled', label: 'Hủy' },
+    { target: 'done', label: '☕ Hoàn tất giao', btnClass: 'btn-st-done' },
+    { target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' },
   ],
-  done: [{ target: 'cancelled', label: 'Hủy' }],
+  done: [{ target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' }],
   cancelled: [],
 }
 
-const STATUS_CLASS: Record<OrderStatus, string> = {
-  new: 'st-new',
-  confirmed: 'st-confirmed',
-  paid: 'st-paid',
-  done: 'st-done',
-  cancelled: 'st-cancelled',
+const STATUS_CONFIG: Record<OrderStatus, { label: string; class: string }> = {
+  new: { label: 'Đơn mới', class: 'st-new' },
+  confirmed: { label: 'Đã xác nhận', class: 'st-confirmed' },
+  paid: { label: 'Đã thu tiền', class: 'st-paid' },
+  done: { label: 'Hoàn tất', class: 'st-done' },
+  cancelled: { label: 'Đã hủy', class: 'st-cancelled' },
 }
 
 function vnTime(iso: string): string {
@@ -48,7 +48,7 @@ export default function Orders() {
       const r = await api.orders(date)
       setOrders(r.orders)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không tải được đơn')
+      setError(e instanceof Error ? e.message : 'Không tải được danh sách đơn hàng')
     }
   }, [date])
 
@@ -61,89 +61,200 @@ export default function Orders() {
       await api.patchOrder(id, target)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chuyển trạng thái thất bại')
+      setError(e instanceof Error ? e.message : 'Chuyển trạng thái đơn thất bại')
     }
   }
 
+  const activeOrders = orders.filter((o) => o.status !== 'cancelled')
+  const totalRevenue = activeOrders.reduce((s, o) => s + o.total, 0)
   const morning = orders.filter((o) => o.slotPart === 'morning')
   const afternoon = orders.filter((o) => o.slotPart === 'afternoon')
 
   return (
-    <div>
-      <div className="toolbar">
-        <label>
-          Ngày nhận:{' '}
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <button className="btn-light" onClick={() => setShowManual((v) => !v)}>
-          {showManual ? 'Đóng nhập hộ' : '+ Nhập hộ (Zalo)'}
+    <div className="orders-container">
+      {/* THANH CÔNG CỤ & KPI SUMMARY */}
+      <div className="orders-top-control">
+        <div className="date-picker-wrap">
+          <label className="date-label">Ngày nhận:</label>
+          <input
+            type="date"
+            className="admin-input date-input"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <button
+            className="btn-admin-light btn-today"
+            onClick={() => setDate(vnToday())}
+          >
+            Hôm nay
+          </button>
+        </div>
+
+        <button
+          className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
+          onClick={() => setShowManual((v) => !v)}
+        >
+          {showManual ? '✕ Đóng form nhập' : '+ Nhập hộ đơn (Zalo)'}
         </button>
       </div>
 
-      {showManual && <ManualOrder onDone={() => { setShowManual(false); void load() }} />}
+      {/* KPI METRIC CARDS */}
+      <div className="kpi-metrics-grid">
+        <div className="kpi-card">
+          <span className="kpi-title">Tổng đơn hàng</span>
+          <span className="kpi-value">{orders.length}</span>
+          <span className="kpi-hint">{activeOrders.length} đơn hợp lệ</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-title">Tổng doanh thu</span>
+          <span className="kpi-value gold">{fmtVnd(totalRevenue)}</span>
+          <span className="kpi-hint">Đã trừ đơn hủy</span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-title">Khung Sáng</span>
+          <span className="kpi-value">{morning.length} đơn</span>
+          <span className="kpi-hint">
+            {fmtVnd(morning.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0))}
+          </span>
+        </div>
+        <div className="kpi-card">
+          <span className="kpi-title">Khung Chiều</span>
+          <span className="kpi-value">{afternoon.length} đơn</span>
+          <span className="kpi-hint">
+            {fmtVnd(afternoon.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0))}
+          </span>
+        </div>
+      </div>
 
-      {error && <p className="form-error">{error}</p>}
+      {/* FORM NHẬP HỘ ĐƠN TỪ ZALO */}
+      {showManual && (
+        <ManualOrder
+          onDone={() => {
+            setShowManual(false)
+            void load()
+          }}
+        />
+      )}
 
-      {morning.length > 0 && <Section title="Khung sáng" orders={morning} onMove={move} />}
-      {afternoon.length > 0 && <Section title="Khung chiều" orders={afternoon} onMove={move} />}
-      {orders.length === 0 && <p className="muted">Chưa có đơn nào trong ngày này.</p>}
+      {error && <div className="admin-error-alert">{error}</div>}
+
+      {/* DANH SÁCH ĐƠN HÀNG THEO KHUNG */}
+      {morning.length > 0 && <OrderSection title="Khung Sáng" icon="🌅" orders={morning} onMove={move} />}
+      {afternoon.length > 0 && <OrderSection title="Khung Chiều" icon="☕" orders={afternoon} onMove={move} />}
+
+      {orders.length === 0 && (
+        <div className="empty-orders-view">
+          <span className="empty-icon">☕</span>
+          <h3>Chưa có đơn hàng nào trong ngày {date}</h3>
+          <p>Khách có thể đặt qua trang bán hoặc bạn có thể bấm "Nhập hộ đơn (Zalo)".</p>
+        </div>
+      )}
     </div>
   )
 }
 
-function Section({
+function OrderSection({
   title,
+  icon,
   orders,
   onMove,
 }: {
   title: string
+  icon: string
   orders: AdminOrder[]
   onMove: (id: number, target: OrderStatus) => void
 }) {
+  const activeCount = orders.filter((o) => o.status !== 'cancelled').length
   const revenue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0)
+
   return (
-    <section className="slot-section">
-      <h2>
-        {title} <span className="muted">({orders.length} đơn • {fmtVnd(revenue)})</span>
-      </h2>
-      <div className="order-grid">
+    <section className="admin-order-section">
+      <div className="section-header">
+        <h2>
+          <span className="sec-icon">{icon}</span> {title}
+        </h2>
+        <span className="section-meta">
+          {activeCount} đơn hợp lệ • <b>{fmtVnd(revenue)}</b>
+        </span>
+      </div>
+
+      <div className="orders-grid">
         {orders.map((o) => (
-          <article key={o.id} className={`order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''}`}>
-            <header>
-              <b>{o.code}</b>
-              <span className={`status ${STATUS_CLASS[o.status]}`}>{o.statusLabel}</span>
-              {o.channel === 'zalo' && <span className="badge">Zalo</span>}
-              {!o.teamsThread && o.channel === 'web' && <span className="badge warn">chưa lên Teams</span>}
-            </header>
-            <div className="order-body">
-              <p>
-                <b>{o.customerName}</b> • {o.receiveMode === 'delivery' ? `giao: ${o.location}` : 'nhận tại quán'}
-              </p>
-              <ul>
+          <article
+            key={o.id}
+            className={`admin-order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''}`}
+          >
+            <div className="card-top">
+              <div className="order-code-block">
+                <span className="order-code">{o.code}</span>
+                {o.channel === 'zalo' ? (
+                  <span className="channel-badge zalo">Zalo</span>
+                ) : (
+                  <span className="channel-badge web">Web</span>
+                )}
+                {!o.teamsThread && o.channel === 'web' && (
+                  <span className="teams-badge warn" title="Chưa liên kết Luồng Teams">
+                    Chưa lên Teams
+                  </span>
+                )}
+              </div>
+
+              <span className={`status-pill ${STATUS_CONFIG[o.status].class}`}>
+                {o.statusLabel}
+              </span>
+            </div>
+
+            <div className="card-customer-info">
+              <div className="customer-name">{o.customerName}</div>
+              <div className="delivery-mode">
+                {o.receiveMode === 'delivery' ? (
+                  <span className="mode-delivery">🚀 Giao: {o.location}</span>
+                ) : (
+                  <span className="mode-pickup">☕ Nhận tại quán</span>
+                )}
+              </div>
+            </div>
+
+            <div className="card-items-block">
+              <ul className="items-list">
                 {o.items.map((it, i) => (
-                  <li key={i}>
-                    {it.name}
-                    {it.optionSummary ? ` (${it.optionSummary})` : ''} × {it.qty}
+                  <li key={i} className="item-row">
+                    <span className="it-name">{it.name}</span>
+                    {it.optionSummary && <span className="it-opt">({it.optionSummary})</span>}
+                    <span className="it-qty">× {it.qty}</span>
                   </li>
                 ))}
               </ul>
-              {o.note && <p className="note">📝 {o.note}</p>}
-              <p className="meta">
-                {o.paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt'} • {fmtVnd(o.total)} • đặt lúc {vnTime(o.createdAt)}
-              </p>
             </div>
+
+            {o.note && (
+              <div className="card-note-box">
+                <span className="note-icon">📝</span>
+                <span className="note-text">{o.note}</span>
+              </div>
+            )}
+
+            <div className="card-financial-row">
+              <span className="pay-method">
+                {o.paymentMethod === 'transfer' ? '📱 Chuyển khoản VietQR' : '💵 Tiền mặt'}
+              </span>
+              <span className="order-total-price">{fmtVnd(o.total)}</span>
+            </div>
+
+            <div className="card-time-meta">Đặt lúc {vnTime(o.createdAt)}</div>
+
             {NEXT_ACTIONS[o.status].length > 0 && (
-              <footer>
+              <div className="card-actions-row">
                 {NEXT_ACTIONS[o.status].map((a) => (
                   <button
                     key={a.target}
-                    className={a.target === 'cancelled' ? 'btn-danger' : 'btn-dark'}
+                    className={`btn-action ${a.btnClass}`}
                     onClick={() => onMove(o.id, a.target)}
                   >
                     {a.label}
                   </button>
                 ))}
-              </footer>
+              </div>
             )}
           </article>
         ))}
@@ -182,11 +293,11 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
   async function submit(): Promise<void> {
     setError('')
     if (!name.trim()) {
-      setError('Cần tên khách')
+      setError('Vui lòng nhập tên khách')
       return
     }
     if (mode === 'delivery' && !location.trim()) {
-      setError('Cần vị trí giao')
+      setError('Vui lòng nhập vị trí bàn giao hàng')
       return
     }
     const lines = Object.entries(qtys)
@@ -200,7 +311,7 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
         return { itemId: item.id, qty, optionIds: defaults }
       })
     if (lines.length === 0) {
-      setError('Chọn ít nhất một món')
+      setError('Chọn ít nhất một món cho khách')
       return
     }
     const [slotDate, slotPart] = slotKey.split('|')
@@ -226,27 +337,54 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="manual-card">
-      <h3>Nhập hộ đơn từ Zalo</h3>
-      <div className="manual-grid">
-        <label>
-          Tên khách <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Cách nhận{' '}
-          <select value={mode} onChange={(e) => setMode(e.target.value as 'pickup' | 'delivery')}>
+    <div className="manual-order-panel">
+      <div className="panel-head">
+        <h3>+ Nhập hộ đơn từ Zalo</h3>
+        <span className="panel-sub">Tạo đơn nhanh cho khách nhắn tin qua Zalo</span>
+      </div>
+
+      <div className="manual-form-grid">
+        <div className="field-block">
+          <label>Tên khách *</label>
+          <input
+            className="admin-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ví dụ: Hoàng Tuấn"
+          />
+        </div>
+
+        <div className="field-block">
+          <label>Cách nhận</label>
+          <select
+            className="admin-select"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as 'pickup' | 'delivery')}
+          >
             <option value="pickup">Nhận tại quán</option>
             <option value="delivery">Giao tận nơi</option>
           </select>
-        </label>
+        </div>
+
         {mode === 'delivery' && (
-          <label>
-            Vị trí giao <input value={location} onChange={(e) => setLocation(e.target.value)} />
-          </label>
+          <div className="field-block">
+            <label>Vị trí giao *</label>
+            <input
+              className="admin-input"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Tầng 4, Phòng Dev..."
+            />
+          </div>
         )}
-        <label>
-          Khung nhận{' '}
-          <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)}>
+
+        <div className="field-block">
+          <label>Khung nhận</label>
+          <select
+            className="admin-select"
+            value={slotKey}
+            onChange={(e) => setSlotKey(e.target.value)}
+          >
             {slots.map((s) => (
               <option key={`${s.date}|${s.part}`} value={`${s.date}|${s.part}`}>
                 {s.label}
@@ -254,34 +392,62 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Thanh toán{' '}
-          <select value={payment} onChange={(e) => setPayment(e.target.value as 'transfer' | 'cash')}>
-            <option value="cash">Tiền mặt</option>
-            <option value="transfer">Chuyển khoản</option>
+        </div>
+
+        <div className="field-block">
+          <label>Thanh toán</label>
+          <select
+            className="admin-select"
+            value={payment}
+            onChange={(e) => setPayment(e.target.value as 'transfer' | 'cash')}
+          >
+            <option value="cash">Tiền mặt khi nhận</option>
+            <option value="transfer">Chuyển khoản QR</option>
           </select>
-        </label>
-        <label className="span2">
-          Ghi chú <input value={note} onChange={(e) => setNote(e.target.value)} />
-        </label>
+        </div>
+
+        <div className="field-block span-full">
+          <label>Ghi chú</label>
+          <input
+            className="admin-input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ít ngọt, nhiều đá..."
+          />
+        </div>
       </div>
-      <div className="manual-items">
-        {menu.map((m) => (
-          <div key={m.id} className="manual-item">
-            <span>{m.name}</span>
-            <span className="qty-ctrl">
-              <button onClick={() => bump(m.id, -1)}>−</button>
-              <b>{qtys[m.id] ?? 0}</b>
-              <button onClick={() => bump(m.id, 1)}>+</button>
-            </span>
-          </div>
-        ))}
+
+      <div className="manual-items-selector">
+        <label className="section-label">Chọn món và số lượng:</label>
+        <div className="item-selector-grid">
+          {menu.map((m) => (
+            <div key={m.id} className="selector-row">
+              <div className="sel-item-name">
+                <b>{m.name}</b>
+                <span className="sel-price">{fmtVnd(m.price)}</span>
+              </div>
+              <div className="admin-stepper">
+                <button type="button" onClick={() => bump(m.id, -1)}>
+                  −
+                </button>
+                <span className="val">{qtys[m.id] ?? 0}</span>
+                <button type="button" onClick={() => bump(m.id, 1)}>
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      {error && <p className="form-error">{error}</p>}
-      <button className="btn-dark" disabled={busy} onClick={() => void submit()}>
-        {busy ? 'Đang tạo...' : 'Tạo đơn'}
-      </button>
+
+      {error && <div className="admin-error-alert">{error}</div>}
+
+      <div className="panel-actions">
+        <button className="btn-admin-primary" disabled={busy} onClick={() => void submit()}>
+          {busy ? 'Đang tạo đơn...' : '✓ Xác nhận tạo đơn'}
+        </button>
+      </div>
     </div>
   )
 }
+

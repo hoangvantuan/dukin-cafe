@@ -71,7 +71,7 @@ export default function MenuEditor() {
     setSaved(false)
     const price = Number(draft.price)
     if (!Number.isInteger(price) || price < 0) {
-      setError('Giá phải là số nguyên không âm')
+      setError('Giá phải là số nguyên không âm (ví dụ: 25000)')
       return
     }
     const groups = draft.groups.map((g) => ({
@@ -99,159 +99,243 @@ export default function MenuEditor() {
       setSaved(true)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Lưu thất bại')
+      setError(e instanceof Error ? e.message : 'Lưu món thất bại')
     }
   }
 
   async function remove(id: number): Promise<void> {
-    if (!window.confirm('Xóa món này khỏi thực đơn?')) return
+    if (!window.confirm('Bạn có chắc muốn xóa món này khỏi thực đơn?')) return
     try {
       await api.deleteItem(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Xóa thất bại')
+      setError(e instanceof Error ? e.message : 'Xóa món thất bại')
     }
   }
 
   if (draft) {
     return (
-      <div className="edit-card">
-        <h3>{editingId ? 'Sửa món' : 'Thêm món mới'}</h3>
-        <div className="manual-grid">
-          <label>
-            Tên <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-          </label>
-          <label>
-            Tên Pháp <input value={draft.nameFr} onChange={(e) => setDraft({ ...draft, nameFr: e.target.value })} />
-          </label>
-          <label>
-            Giá (đ) <input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} inputMode="numeric" />
-          </label>
-          <label>
-            Thứ tự <input value={draft.sort} onChange={(e) => setDraft({ ...draft, sort: e.target.value })} inputMode="numeric" />
-          </label>
-          <label className="span2">
-            Mô tả <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
-            Còn bán
-          </label>
+      <div className="admin-editor-card">
+        <div className="editor-head">
+          <h3>{editingId ? 'Chỉnh sửa Món ăn' : 'Thêm Món mới vào Thực đơn'}</h3>
+          <span className="editor-sub">Thiết lập tên gọi, định giá và các nhóm tùy chọn kèm theo</span>
         </div>
 
-        <h4>Nhóm tùy chọn</h4>
-        {draft.groups.map((g, gi) => (
-          <div className="group-edit" key={gi}>
-            <div className="group-edit-head">
+        <div className="editor-form-grid">
+          <div className="field-block">
+            <label>Tên tiếng Việt *</label>
+            <input
+              className="admin-input"
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="Ví dụ: Đen Huyền Bí"
+            />
+          </div>
+
+          <div className="field-block">
+            <label>Tên tiếng Pháp</label>
+            <input
+              className="admin-input"
+              value={draft.nameFr}
+              onChange={(e) => setDraft({ ...draft, nameFr: e.target.value })}
+              placeholder="Ví dụ: Le Noir"
+            />
+          </div>
+
+          <div className="field-block">
+            <label>Giá bán (VNĐ) *</label>
+            <input
+              className="admin-input"
+              value={draft.price}
+              onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+              placeholder="20000"
+              inputMode="numeric"
+            />
+          </div>
+
+          <div className="field-block">
+            <label>Thứ tự hiển thị</label>
+            <input
+              className="admin-input"
+              value={draft.sort}
+              onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
+              placeholder="1, 2, 3..."
+              inputMode="numeric"
+            />
+          </div>
+
+          <div className="field-block span-full">
+            <label>Mô tả hương vị / pha chế</label>
+            <textarea
+              className="admin-textarea"
+              rows={2}
+              value={draft.description}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              placeholder="Phin nhỏ giọt, đắng thanh hậu ngọt..."
+            />
+          </div>
+
+          <div className="field-block span-full">
+            <label className="admin-checkbox-label">
               <input
-                value={g.name}
-                onChange={(e) => {
-                  const groups = [...draft.groups]
-                  groups[gi] = { ...g, name: e.target.value }
-                  setDraft({ ...draft, groups })
-                }}
-                placeholder="Tên nhóm (Kích cỡ, Đá...)"
+                type="checkbox"
+                checked={draft.active}
+                onChange={(e) => setDraft({ ...draft, active: e.target.checked })}
               />
-              <label className="check">
+              <span>Đang mở bán (hiển thị trên trang đặt hàng của khách)</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="options-management-block">
+          <div className="options-block-head">
+            <h4>Nhóm Tùy chọn (Topping, Size, Đường, Đá...)</h4>
+            <button
+              type="button"
+              className="btn-admin-light"
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  groups: [
+                    ...draft.groups,
+                    {
+                      name: '',
+                      required: true,
+                      multiple: false,
+                      options: [{ name: '', priceAdd: '0' }],
+                    },
+                  ],
+                })
+              }
+            >
+              + Thêm nhóm tùy chọn
+            </button>
+          </div>
+
+          {draft.groups.map((g, gi) => (
+            <div className="group-edit-box" key={gi}>
+              <div className="group-edit-row">
                 <input
-                  type="checkbox"
-                  checked={g.required}
+                  className="admin-input group-name-input"
+                  value={g.name}
                   onChange={(e) => {
                     const groups = [...draft.groups]
-                    groups[gi] = { ...g, required: e.target.checked }
+                    groups[gi] = { ...g, name: e.target.value }
                     setDraft({ ...draft, groups })
                   }}
+                  placeholder="Tên nhóm (ví dụ: Kích cỡ, Lượng đá...)"
                 />
-                Bắt buộc
-              </label>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={g.multiple}
-                  onChange={(e) => {
-                    const groups = [...draft.groups]
-                    groups[gi] = { ...g, multiple: e.target.checked }
-                    setDraft({ ...draft, groups })
-                  }}
-                />
-                Chọn nhiều
-              </label>
-              <button
-                className="btn-danger"
-                onClick={() => setDraft({ ...draft, groups: draft.groups.filter((_, i) => i !== gi) })}
-              >
-                Xóa nhóm
-              </button>
-            </div>
-            {g.options.map((o, oi) => (
-              <div className="option-edit" key={oi}>
-                <input
-                  value={o.name}
-                  onChange={(e) => {
-                    const groups = [...draft.groups]
-                    const options = [...g.options]
-                    options[oi] = { ...o, name: e.target.value }
-                    groups[gi] = { ...g, options }
-                    setDraft({ ...draft, groups })
-                  }}
-                  placeholder="Tên lựa chọn"
-                />
-                <input
-                  value={o.priceAdd}
-                  onChange={(e) => {
-                    const groups = [...draft.groups]
-                    const options = [...g.options]
-                    options[oi] = { ...o, priceAdd: e.target.value }
-                    groups[gi] = { ...g, options }
-                    setDraft({ ...draft, groups })
-                  }}
-                  placeholder="Cộng thêm (đ)"
-                  inputMode="numeric"
-                />
+
+                <label className="admin-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={g.required}
+                    onChange={(e) => {
+                      const groups = [...draft.groups]
+                      groups[gi] = { ...g, required: e.target.checked }
+                      setDraft({ ...draft, groups })
+                    }}
+                  />
+                  <span>Bắt buộc</span>
+                </label>
+
+                <label className="admin-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={g.multiple}
+                    onChange={(e) => {
+                      const groups = [...draft.groups]
+                      groups[gi] = { ...g, multiple: e.target.checked }
+                      setDraft({ ...draft, groups })
+                    }}
+                  />
+                  <span>Chọn nhiều</span>
+                </label>
+
                 <button
-                  className="btn-light"
+                  type="button"
+                  className="btn-admin-danger"
+                  onClick={() =>
+                    setDraft({ ...draft, groups: draft.groups.filter((_, i) => i !== gi) })
+                  }
+                >
+                  ✕ Xóa nhóm
+                </button>
+              </div>
+
+              <div className="options-list-editor">
+                {g.options.map((o, oi) => (
+                  <div className="option-row-edit" key={oi}>
+                    <input
+                      className="admin-input"
+                      value={o.name}
+                      onChange={(e) => {
+                        const groups = [...draft.groups]
+                        const options = [...g.options]
+                        options[oi] = { ...o, name: e.target.value }
+                        groups[gi] = { ...g, options }
+                        setDraft({ ...draft, groups })
+                      }}
+                      placeholder="Tên lựa chọn (ví dụ: Size Lớn)"
+                    />
+                    <input
+                      className="admin-input opt-price-input"
+                      value={o.priceAdd}
+                      onChange={(e) => {
+                        const groups = [...draft.groups]
+                        const options = [...g.options]
+                        options[oi] = { ...o, priceAdd: e.target.value }
+                        groups[gi] = { ...g, options }
+                        setDraft({ ...draft, groups })
+                      }}
+                      placeholder="Cộng thêm (đ)"
+                      inputMode="numeric"
+                    />
+                    <button
+                      type="button"
+                      className="btn-remove-opt"
+                      onClick={() => {
+                        const groups = [...draft.groups]
+                        groups[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
+                        setDraft({ ...draft, groups })
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="btn-add-opt-inline"
                   onClick={() => {
                     const groups = [...draft.groups]
-                    groups[gi] = { ...g, options: g.options.filter((_, i) => i !== oi) }
+                    groups[gi] = { ...g, options: [...g.options, { name: '', priceAdd: '0' }] }
                     setDraft({ ...draft, groups })
                   }}
                 >
-                  ×
+                  + Thêm lựa chọn con
                 </button>
               </div>
-            ))}
-            <button
-              className="btn-light"
-              onClick={() => {
-                const groups = [...draft.groups]
-                groups[gi] = { ...g, options: [...g.options, { name: '', priceAdd: '0' }] }
-                setDraft({ ...draft, groups })
-              }}
-            >
-              + Lựa chọn
-            </button>
-          </div>
-        ))}
-        <button
-          className="btn-light"
-          onClick={() => setDraft({ ...draft, groups: [...draft.groups, { name: '', required: true, multiple: false, options: [{ name: '', priceAdd: '0' }] }] })}
-        >
-          + Nhóm tùy chọn
-        </button>
+            </div>
+          ))}
+        </div>
 
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-actions">
+        {error && <div className="admin-error-alert">{error}</div>}
+
+        <div className="editor-actions">
           <button
-            className="btn-light"
+            type="button"
+            className="btn-admin-light"
             onClick={() => {
               setDraft(null)
               setEditingId(null)
             }}
           >
-            Hủy
+            Hủy thao tác
           </button>
-          <button className="btn-dark" onClick={() => void save()}>
-            Lưu
+          <button type="button" className="btn-admin-primary" onClick={() => void save()}>
+            ✓ Lưu món ăn
           </button>
         </div>
       </div>
@@ -259,57 +343,84 @@ export default function MenuEditor() {
   }
 
   return (
-    <div>
-      <div className="toolbar">
+    <div className="menu-admin-view">
+      <div className="menu-top-bar">
+        <div>
+          <h2>Quản lý Thực đơn</h2>
+          <span className="section-sub">Thêm bớt món, cập nhật giá và các tùy chọn món uống</span>
+        </div>
+
         <button
-          className="btn-dark"
+          className="btn-admin-primary"
           onClick={() => {
             setDraft(emptyDraft())
             setEditingId(null)
           }}
         >
-          + Thêm món
+          + Thêm món mới
         </button>
-        {saved && <span className="ok-msg">Đã lưu.</span>}
       </div>
-      {error && <p className="form-error">{error}</p>}
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Món</th>
-            <th>Tên Pháp</th>
-            <th>Giá</th>
-            <th>Nhóm tùy chọn</th>
-            <th>Trạng thái</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((i) => (
-            <tr key={i.id}>
-              <td>{i.name}</td>
-              <td className="muted">{i.nameFr}</td>
-              <td>{fmtVnd(i.price)}</td>
-              <td className="muted">{i.groups.map((g) => g.name).join(', ') || '−'}</td>
-              <td>{i.active ? 'Còn bán' : 'Đã ẩn'}</td>
-              <td className="row-actions">
-                <button
-                  className="btn-light"
-                  onClick={() => {
-                    setDraft(toDraft(i))
-                    setEditingId(i.id)
-                  }}
-                >
-                  Sửa
-                </button>
-                <button className="btn-danger" onClick={() => void remove(i.id)}>
-                  Xóa
-                </button>
-              </td>
+
+      {saved && <div className="admin-success-alert">Đã lưu thay đổi vào thực đơn.</div>}
+      {error && <div className="admin-error-alert">{error}</div>}
+
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Món đồ uống</th>
+              <th>Tên tiếng Pháp</th>
+              <th>Giá bán</th>
+              <th>Nhóm tùy chọn</th>
+              <th>Trạng thái</th>
+              <th className="th-actions">Thao tác</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((i) => (
+              <tr key={i.id} className={!i.active ? 'tr-inactive' : ''}>
+                <td className="td-name">
+                  <b>{i.name}</b>
+                  {i.description && <small className="td-desc">{i.description}</small>}
+                </td>
+                <td className="td-muted italic">{i.nameFr || '—'}</td>
+                <td className="td-price">{fmtVnd(i.price)}</td>
+                <td className="td-groups">
+                  {i.groups.length > 0 ? (
+                    i.groups.map((g) => (
+                      <span key={g.id} className="group-tag">
+                        {g.name} ({g.options.length})
+                      </span>
+                    ))
+                  ) : (
+                    <span className="td-muted">—</span>
+                  )}
+                </td>
+                <td>
+                  <span className={`badge-active ${i.active ? 'is-active' : 'is-hidden'}`}>
+                    {i.active ? 'Đang bán' : 'Đã ẩn'}
+                  </span>
+                </td>
+                <td className="td-actions">
+                  <button
+                    className="btn-table-edit"
+                    onClick={() => {
+                      setDraft(toDraft(i))
+                      setEditingId(i.id)
+                    }}
+                  >
+                    Sửa
+                  </button>
+                  <button className="btn-table-delete" onClick={() => void remove(i.id)}>
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
+

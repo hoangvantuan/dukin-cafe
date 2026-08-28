@@ -8,11 +8,11 @@ import './admin.css'
 
 type Tab = 'orders' | 'menu' | 'customers' | 'settings'
 
-const TAB_LABEL: Record<Tab, string> = {
-  orders: 'Đơn hàng',
-  menu: 'Thực đơn',
-  customers: 'Danh bạ',
-  settings: 'Cấu hình',
+const TAB_CONFIG: Record<Tab, { label: string; icon: string }> = {
+  orders: { label: 'Đơn hàng', icon: '📋' },
+  menu: { label: 'Thực đơn', icon: '☕' },
+  customers: { label: 'Danh bạ Khách', icon: '👥' },
+  settings: { label: 'Cấu hình', icon: '⚙️' },
 }
 
 export default function Admin() {
@@ -25,8 +25,9 @@ export default function Admin() {
 
   if (authed === null) {
     return (
-      <div className="admin-shell">
-        <p className="muted">Đang kiểm tra phiên...</p>
+      <div className="admin-loading-screen">
+        <div className="loading-spinner">☕</div>
+        <p>Đang kiểm tra phiên làm việc...</p>
       </div>
     )
   }
@@ -36,29 +37,53 @@ export default function Admin() {
   }
 
   return (
-    <div className="admin-shell">
-      <header className="admin-top">
-        <h1>DUKIN • Trang quản lý</h1>
-        <button
-          className="btn-light"
-          onClick={() => {
-            void api.logout().finally(() => setAuthed(false))
-          }}
-        >
-          Đăng xuất
-        </button>
+    <div className="admin-layout">
+      {/* THANH TOPBAR QUẢN TRỊ */}
+      <header className="admin-topbar">
+        <div className="admin-brand">
+          <span className="brand-logo">☕</span>
+          <div>
+            <h1 className="admin-brand-name">DUKIN CAFE &amp; BISTRO</h1>
+            <span className="admin-brand-tag">Bảng điều khiển Quản lý &amp; Vận hành</span>
+          </div>
+        </div>
+
+        <div className="admin-top-actions">
+          <a href="/dat-hang" target="_blank" rel="noreferrer" className="btn-view-store">
+            <span>↗ Xem Trang bán</span>
+          </a>
+          <button
+            className="btn-logout"
+            onClick={() => {
+              void api.logout().finally(() => setAuthed(false))
+            }}
+          >
+            Đăng xuất
+          </button>
+        </div>
       </header>
-      <nav className="admin-tabs">
-        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
-          <button key={t} className={tab === t ? 'tab active' : 'tab'} onClick={() => setTab(t)}>
-            {TAB_LABEL[t]}
+
+      {/* THANH TABS ĐIỀU HƯỚNG */}
+      <nav className="admin-nav-tabs">
+        {(Object.keys(TAB_CONFIG) as Tab[]).map((t) => (
+          <button
+            key={t}
+            className={`admin-tab-btn ${tab === t ? 'active' : ''}`}
+            onClick={() => setTab(t)}
+          >
+            <span className="tab-icon">{TAB_CONFIG[t].icon}</span>
+            <span className="tab-label">{TAB_CONFIG[t].label}</span>
           </button>
         ))}
       </nav>
-      {tab === 'orders' && <Orders />}
-      {tab === 'menu' && <MenuEditor />}
-      {tab === 'customers' && <Customers />}
-      {tab === 'settings' && <SettingsForm />}
+
+      {/* NỘI DUNG TỪNG TAB */}
+      <main className="admin-main-content">
+        {tab === 'orders' && <Orders />}
+        {tab === 'menu' && <MenuEditor />}
+        {tab === 'customers' && <Customers />}
+        {tab === 'settings' && <SettingsForm />}
+      </main>
     </div>
   )
 }
@@ -75,34 +100,47 @@ function Login({ onOk }: { onOk: () => void }) {
       await api.login(password)
       onOk()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Đăng nhập thất bại')
+      setError(e instanceof Error ? e.message : 'Đăng nhập không thành công')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="admin-shell login-shell">
-      <form
-        className="login-card"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void go()
-        }}
-      >
-        <h1>DUKIN • Trang quản lý</h1>
-        <input
-          type="password"
-          placeholder="Mật khẩu"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoFocus
-        />
-        {error && <p className="form-error">{error}</p>}
-        <button className="btn-dark" disabled={busy}>
-          {busy ? 'Đang vào...' : 'Vào'}
-        </button>
-      </form>
+    <div className="admin-login-screen">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-logo">☕</div>
+          <h2>DUKIN CAFE &amp; BISTRO</h2>
+          <p>Trang quản trị quán cà phê</p>
+        </div>
+
+        <form
+          className="login-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void go()
+          }}
+        >
+          <div className="login-field">
+            <label>Mật khẩu quản trị</label>
+            <input
+              type="password"
+              placeholder="Nhập mật khẩu..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {error && <div className="admin-error-alert">{error}</div>}
+
+          <button className="btn-admin-primary" disabled={busy || !password.trim()}>
+            {busy ? 'Đang xác thực...' : 'Đăng nhập vào quầy'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
+

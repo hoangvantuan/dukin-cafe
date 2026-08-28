@@ -8,6 +8,7 @@ export default function Customers() {
   const [name, setName] = useState('')
   const [teamsId, setTeamsId] = useState('')
   const [error, setError] = useState('')
+  const [okMsg, setOkMsg] = useState('')
 
   async function load(): Promise<void> {
     try {
@@ -24,17 +25,20 @@ export default function Customers() {
 
   async function save(): Promise<void> {
     if (!name.trim()) {
-      setError('Cần tên khách')
+      setError('Vui lòng nhập tên khách')
       return
     }
+    setError('')
+    setOkMsg('')
     try {
       await api.saveCustomer(name.trim(), teamsId.trim())
       setName('')
       setTeamsId('')
-      setError('')
+      setOkMsg('Đã thêm khách vào danh bạ.')
+      setTimeout(() => setOkMsg(''), 2500)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Lưu thất bại')
+      setError(e instanceof Error ? e.message : 'Lưu khách thất bại')
     }
   }
 
@@ -44,46 +48,89 @@ export default function Customers() {
   }
 
   async function remove(id: number): Promise<void> {
+    if (!window.confirm('Xóa thông tin khách này khỏi danh bạ?')) return
     await api.deleteCustomer(id).catch((e: Error) => setError(e.message))
     await load()
   }
 
   return (
-    <div>
-      <div className="manual-card">
-        <h3>Thêm / cập nhật danh bạ</h3>
-        <div className="manual-grid">
-          <label>
-            Tên khách <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label>
-            Mã người dùng Teams <input value={teamsId} onChange={(e) => setTeamsId(e.target.value)} placeholder="8:orgid:..." />
-          </label>
+    <div className="customers-view">
+      <div className="admin-editor-card">
+        <div className="editor-head">
+          <h3>Thêm / Cập nhật Danh bạ Đồng nghiệp</h3>
+          <span className="editor-sub">
+            Liên kết tên khách với mã tài khoản Microsoft Teams để Bot DUKIN tự động gắn thẻ (tag/mention) khi đổi trạng thái đơn
+          </span>
         </div>
-        <p className="muted small">
-          Mã Teams lấy từ trang hồ sơ Teams (mục "Copy user ID" hoặc tra trong Azure AD). Khách được nhắc tên
-          trong Luồng Đơn hàng khi đổi trạng thái.
+
+        <div className="editor-form-grid">
+          <div className="field-block">
+            <label>Tên khách quen *</label>
+            <input
+              className="admin-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ví dụ: Hoàng Tuấn"
+            />
+          </div>
+
+          <div className="field-block">
+            <label>Mã người dùng Microsoft Teams</label>
+            <input
+              className="admin-input"
+              value={teamsId}
+              onChange={(e) => setTeamsId(e.target.value)}
+              placeholder="8:orgid:..."
+            />
+          </div>
+        </div>
+
+        <p className="admin-hint-text">
+          💡 Mã Teams lấy từ hồ sơ Microsoft Teams (mục "Copy user ID") hoặc Azure AD. Bot DUKIN sẽ gắn thẻ tên đồng nghiệp này trên nhóm Teams khi đơn hàng được cập nhật.
         </p>
-        {error && <p className="form-error">{error}</p>}
-        <button className="btn-dark" onClick={() => void save()}>
-          Lưu
-        </button>
+
+        {error && <div className="admin-error-alert">{error}</div>}
+        {okMsg && <div className="admin-success-alert">{okMsg}</div>}
+
+        <div className="editor-actions">
+          <button className="btn-admin-primary" onClick={() => void save()}>
+            ✓ Lưu vào danh bạ
+          </button>
+        </div>
       </div>
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Tên</th>
-            <th>Mã Teams</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {customers.map((c) => (
-            <CustomerRow key={c.id} customer={c} onSave={(v) => void updateRow(c, v)} onDelete={() => void remove(c.id)} />
-          ))}
-        </tbody>
-      </table>
+      <div className="customers-list-section">
+        <h3>Danh sách khách quen ({customers.length})</h3>
+
+        <div className="admin-table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th style={{ width: '30%' }}>Tên đồng nghiệp</th>
+                <th>Mã người dùng Teams</th>
+                <th className="th-actions">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((c) => (
+                <CustomerRow
+                  key={c.id}
+                  customer={c}
+                  onSave={(v) => void updateRow(c, v)}
+                  onDelete={() => void remove(c.id)}
+                />
+              ))}
+              {customers.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="td-empty">
+                    Chưa có khách nào trong danh bạ.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
@@ -99,22 +146,31 @@ function CustomerRow({
 }) {
   const [value, setValue] = useState(customer.teamsId)
   const dirty = value !== customer.teamsId
+
   return (
     <tr>
-      <td>{customer.name}</td>
-      <td>
-        <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="8:orgid:..." />
+      <td className="td-name">
+        <b>{customer.name}</b>
       </td>
-      <td className="row-actions">
+      <td>
+        <input
+          className="admin-input table-inline-input"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="8:orgid:..."
+        />
+      </td>
+      <td className="td-actions">
         {dirty && (
-          <button className="btn-dark" onClick={() => onSave(value)}>
+          <button className="btn-table-save" onClick={() => onSave(value)}>
             Lưu
           </button>
         )}
-        <button className="btn-danger" onClick={onDelete}>
+        <button className="btn-table-delete" onClick={onDelete}>
           Xóa
         </button>
       </td>
     </tr>
   )
 }
+
