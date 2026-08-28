@@ -228,7 +228,7 @@ export default function OrderEditor({
                         onClick={() => toggleOption(l.key, g.id, o.id, g.multiple)}
                       >
                         {o.name}
-                        {o.priceAdd > 0 && <span className="chip-addon">+{o.priceAdd / 1000}k</span>}
+                        {o.priceAdd > 0 && <span className="chip-addon">+{fmtVnd(o.priceAdd)}</span>}
                       </button>
                     ))}
                   </div>

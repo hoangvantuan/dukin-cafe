@@ -1,4 +1,4 @@
-import { fmtVnd } from '../api'
+import { fmtVndShort } from '../api'
 import type { MenuItem } from '../types'
 import { FormBrandHeader } from './BrandHeader'
 import CartSummary from './CartSummary'
@@ -182,7 +182,7 @@ export default function OrderForm({
             {submitting
               ? 'Đang xử lý...'
               : intakeOpen
-                ? `Xác nhận đặt (${fmtVnd(cartTotal)})`
+                ? `Xác nhận đặt (${fmtVndShort(cartTotal)})`
                 : 'Hôm nay quán đã đủ đơn'}
           </button>
         </div>

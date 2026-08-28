@@ -1,4 +1,4 @@
-import { fmtVnd } from '../api'
+import { fmtVndShort } from '../api'
 
 interface StickyBarProps {
   cartCount: number
@@ -18,7 +18,7 @@ export default function StickyBar({ cartCount, cartTotal, onOpenForm }: StickyBa
           </div>
           <div className="tray-info">
             <div className="tray-label">Khay cà phê của bạn</div>
-            <div className="tray-price">{fmtVnd(cartTotal)}</div>
+            <div className="tray-price">{fmtVndShort(cartTotal)}</div>
           </div>
         </div>
         <button type="button" className="bistro-btn btn-gold tray-action-btn" onClick={onOpenForm}>

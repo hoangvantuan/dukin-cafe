@@ -49,6 +49,7 @@ export default function DoneView({
         </div>
         <div className="receipt-row highlight">
           <span>Tổng thanh toán:</span>
+          {/* Số tiền phải trả giữ dạng đầy đủ cho khớp mã VietQR và ứng dụng ngân hàng. */}
           <span className="price-big">{fmtVnd(result.total)}</span>
         </div>
       </div>

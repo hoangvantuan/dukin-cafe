@@ -1,4 +1,4 @@
-import { fmtVnd } from '../api'
+import { fmtVndShort } from '../api'
 import type { MenuItem } from '../types'
 import { linePrice, optionNames, type CartLine } from './cart'
 
@@ -35,7 +35,7 @@ export default function CartSummary({
                 {opts && <div className="cart-item-opts">{opts}</div>}
               </div>
               <div className="cart-item-ctrl">
-                <span className="cart-item-price">{fmtVnd(linePrice(item, l.optionIds) * l.qty)}</span>
+                <span className="cart-item-price">{fmtVndShort(linePrice(item, l.optionIds) * l.qty)}</span>
                 <div className="bistro-stepper mini">
                   <button onClick={() => onChangeCartQty(l.key, -1)} aria-label="Giảm">
                     −
@@ -52,7 +52,7 @@ export default function CartSummary({
       </div>
       <div className="cart-summary-total">
         <span>Tổng cộng</span>
-        <span className="total-gold">{fmtVnd(cartTotal)}</span>
+        <span className="total-gold">{fmtVndShort(cartTotal)}</span>
       </div>
     </section>
   )

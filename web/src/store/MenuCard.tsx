@@ -1,4 +1,4 @@
-import { fmtVnd } from '../api'
+import { fmtVndShort } from '../api'
 import type { MenuItem } from '../types'
 import { linePrice, type Selection } from './cart'
 
@@ -27,15 +27,14 @@ export default function MenuCard({
     <article className="menu-card">
       <div className="menu-card-top">
         <span className="item-num">{itemNum}</span>
-        <div className="item-headings">
-          <h2 className="item-name-vi">
-            {item.name}
-            {item.nameFr && <span className="item-name-fr">~ {item.nameFr} ~</span>}
-          </h2>
-          {item.description && <p className="item-description">{item.description}</p>}
-        </div>
-        <div className="item-price-tag">{fmtVnd(price)}</div>
+        <h2 className="item-name-vi">
+          {item.name}
+          {item.nameFr && <span className="item-name-fr">~ {item.nameFr} ~</span>}
+        </h2>
+        <div className="item-price-tag">{fmtVndShort(price)}</div>
       </div>
+
+      {item.description && <p className="item-description">{item.description}</p>}
 
       {/* Nhóm tùy chọn */}
       {item.groups.length > 0 && (
@@ -59,7 +58,9 @@ export default function MenuCard({
                       onClick={() => onToggleOption(item, g.id, o.id, g.multiple)}
                     >
                       <span className="chip-name">{o.name}</span>
-                      {o.priceAdd > 0 && <span className="chip-addon">+{o.priceAdd / 1000}k</span>}
+                      {o.priceAdd > 0 && (
+                        <span className="chip-addon">+{fmtVndShort(o.priceAdd)}</span>
+                      )}
                     </button>
                   )
                 })}
@@ -87,7 +88,7 @@ export default function MenuCard({
           onClick={() => onAdd(item.id)}
         >
           <span className="btn-icon">☕</span>
-          <span>Thêm vào đơn • {fmtVnd(price * selection.qty)}</span>
+          <span>Thêm vào đơn • {fmtVndShort(price * selection.qty)}</span>
         </button>
       </div>
     </article>

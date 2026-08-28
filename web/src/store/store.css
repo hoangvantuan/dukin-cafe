@@ -198,23 +198,22 @@ body {
   margin-top: var(--dk-space-0-5);
   min-width: 24px;
 }
-.item-headings {
-  flex: 1;
-}
 .item-name-vi {
+  flex: 1;
   font-family: var(--dk-font-display);
   font-size: 21px;
   font-weight: 700;
   color: var(--dk-brown-700);
   line-height: 1.25;
 }
+/* Tên Pháp nằm ngay sau tên Việt trên cùng một dòng, như tờ thực đơn in. */
 .item-name-fr {
-  display: block;
   font-style: italic;
   font-size: 13.5px;
   font-weight: 400;
   color: var(--dk-gold-600);
-  margin-top: var(--dk-space-0-5);
+  margin-left: var(--dk-space-1-5);
+  white-space: nowrap;
 }
 .item-description {
   font-size: 13px;
@@ -227,6 +226,7 @@ body {
   font-family: var(--dk-font-display);
   font-size: 21px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--dk-amber-600);
   white-space: nowrap;
 }

@@ -78,8 +78,22 @@ export const api = {
   deleteCustomer: (id: number) => req<{ ok: true }>(`/api/admin/customers/${id}`, { method: 'DELETE' }),
 }
 
+/**
+ * Tiền dạng đầy đủ: 20000 thành "20.000đ".
+ * Dùng cho Trang quản lý và mọi chỗ Khách phải đối chiếu với số tiền chuyển khoản.
+ */
 export function fmtVnd(n: number): string {
   return `${n.toLocaleString('vi-VN')}đ`
+}
+
+/**
+ * Tiền dạng viết tắt như tờ thực đơn in: 20000 thành "20K", 5000 thành "5K".
+ * Chỉ dùng cho Trang bán. Giá lẻ vẫn ghi đúng số: 12500 thành "12,5K".
+ * Dưới một nghìn thì viết tắt hóa khó đọc nên trả về dạng đầy đủ.
+ */
+export function fmtVndShort(n: number): string {
+  if (n < 1000) return fmtVnd(n)
+  return `${(n / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}K`
 }
 
 /** Ngày hôm nay theo giờ Việt Nam, dạng YYYY-MM-DD. */
