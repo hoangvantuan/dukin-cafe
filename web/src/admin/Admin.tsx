@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import Orders from './Orders'
+import Stats from './Stats'
 import MenuEditor from './MenuEditor'
 import Customers from './Customers'
 import SettingsForm from './SettingsForm'
 import './admin.css'
 
-type Tab = 'orders' | 'menu' | 'customers' | 'settings'
+type Tab = 'orders' | 'stats' | 'menu' | 'customers' | 'settings'
 
 const TAB_CONFIG: Record<Tab, { label: string; icon: string }> = {
   orders: { label: 'Đơn hàng', icon: '📋' },
+  stats: { label: 'Thống kê', icon: '📈' },
   menu: { label: 'Thực đơn', icon: '☕' },
   customers: { label: 'Danh bạ Khách', icon: '👥' },
   settings: { label: 'Cấu hình', icon: '⚙️' },
@@ -99,6 +101,7 @@ export default function Admin() {
       {/* NỘI DUNG TỪNG TAB */}
       <main className="admin-main-content">
         {tab === 'orders' && <Orders />}
+        {tab === 'stats' && <Stats />}
         {tab === 'menu' && <MenuEditor />}
         {tab === 'customers' && <Customers />}
         {tab === 'settings' && <SettingsForm />}

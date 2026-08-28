@@ -4,11 +4,16 @@ import { loadOrder, loadOrderItems, orderCode, STATUS_LABEL } from '../orders.js
 import { botConfigFromSettings, sendOrderReply, sendOrderRoot, type Mention } from './bot.js'
 import { orderCard, statusCard } from './card.js'
 
+/** Người phụ trách; email chỉ để chủ quán nhận ra ai là ai trên Trang quản lý. */
+export interface Recipient extends Mention {
+  email: string
+}
+
 /**
  * Người phụ trách được nhắc khi có đơn mới, lấy từ Cài đặt.
  * Lưu dạng JSON để chủ quán sửa được qua Trang quản lý mà không cần đụng bảng.
  */
-export function parseRecipients(raw: string): Mention[] {
+export function parseRecipients(raw: string): Recipient[] {
   let parsed: unknown
   try {
     parsed = JSON.parse(raw || '[]')
@@ -16,19 +21,20 @@ export function parseRecipients(raw: string): Mention[] {
     return []
   }
   if (!Array.isArray(parsed)) return []
-  const out: Mention[] = []
+  const out: Recipient[] = []
   for (const r of parsed) {
     if (typeof r !== 'object' || r === null) continue
     const o = r as Record<string, unknown>
     const name = typeof o.name === 'string' ? o.name.trim() : ''
     const teamsId = typeof o.teamsId === 'string' ? o.teamsId.trim() : ''
-    if (name && teamsId) out.push({ name, teamsId })
+    const email = typeof o.email === 'string' ? o.email.trim() : ''
+    if (name && teamsId) out.push({ name, teamsId, email })
   }
   return out
 }
 
-export function serializeRecipients(list: Mention[]): string {
-  return JSON.stringify(list.map((m) => ({ name: m.name, teamsId: m.teamsId })))
+export function serializeRecipients(list: Recipient[]): string {
+  return JSON.stringify(list.map((m) => ({ name: m.name, teamsId: m.teamsId, email: m.email })))
 }
 
 /** Gắn thẻ Khách nếu Khách đã liên kết Teams trong Danh bạ. */

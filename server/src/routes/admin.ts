@@ -17,7 +17,9 @@ import {
   type OrderStatus,
 } from '../orders.js'
 import { notifyNewOrder, notifyStatusChanged, parseRecipients, serializeRecipients } from '../teams/notify.js'
+import { botConfigFromSettings, listTeamMembers } from '../teams/bot.js'
 import { vnNow } from '../domain/day.js'
+import { isPeriod, summarize, type StatLine, type StatOrder } from '../domain/stats.js'
 
 async function orderPayload(o: OrderRow) {
   return {
@@ -238,6 +240,55 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     return { ok: true }
   })
 
+  /**
+   * Doanh thu và tình trạng đặt đơn, gộp theo ngày, tuần, tháng hoặc năm.
+   * Việc gộp là hàm thuần ở tầng miền; tuyến này chỉ đọc dữ liệu rồi giao cho nó.
+   */
+  app.get('/api/admin/stats', async (req, reply) => {
+    const query = req.query as { period?: string; span?: string }
+    const period = isPeriod(query.period) ? query.period : 'day'
+    const span = query.span && /^\d{1,3}$/.test(query.span) ? Number(query.span) : undefined
+    if (span !== undefined && (span < 1 || span > 120)) {
+      return reply.code(400).send({ error: 'Số kỳ hiển thị từ 1 tới 120' })
+    }
+    const orders = allRows<StatOrder>(
+      db.prepare(`
+        SELECT order_date AS orderDate, status, total, channel,
+               receive_mode AS receiveMode, payment_method AS paymentMethod,
+               customer_key AS customerKey, customer_name AS customerName
+        FROM orders
+      `),
+    )
+    const lines = allRows<StatLine>(
+      db.prepare(`
+        SELECT o.order_date AS orderDate, o.status, i.name,
+               i.option_summary AS optionSummary, i.qty, i.unit_price AS unitPrice
+        FROM order_items i JOIN orders o ON o.id = i.order_id
+      `),
+    )
+    return summarize({ orders, lines, period, today: vnNow().date, span })
+  })
+
   /** Tình hình nhận đơn hôm nay, cho form nhập hộ biết còn chỗ hay không. */
   app.get('/api/admin/intake', async () => intakeToday())
+
+  /**
+   * Danh sách đồng nghiệp trong nhóm Teams, để chủ quán bấm chọn thay vì tự đi
+   * tìm mã 29:... Teams chỉ gắn thẻ được bằng mã này, không nhận email.
+   */
+  app.get('/api/admin/teams/members', async (_req, reply) => {
+    const cfg = botConfigFromSettings(getSettings())
+    if (!cfg) {
+      return reply.code(400).send({
+        error: 'Chưa cấu hình xong Bot Teams. Điền Tenant ID, App ID, App Secret và cài bot vào nhóm trước.',
+      })
+    }
+    try {
+      const members = await listTeamMembers(cfg)
+      return { members: members.sort((a, b) => a.name.localeCompare(b.name, 'vi')) }
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e)
+      return reply.code(502).send({ error: `Không đọc được danh sách nhóm Teams. ${detail}` })
+    }
+  })
 }

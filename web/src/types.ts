@@ -85,6 +85,15 @@ export interface AdminSettings {
 export interface NotifyRecipient {
   name: string
   teamsId: string
+  email: string
+}
+
+/** Đồng nghiệp trong nhóm Teams đã cài Bot DUKIN. */
+export interface TeamMember {
+  /** Mã Teams dùng khi gắn thẻ, dạng 29:... */
+  teamsId: string
+  name: string
+  email: string
 }
 
 export interface ItemPayload {
@@ -101,4 +110,35 @@ export interface ItemPayload {
     sort: number
     options: Array<{ name: string; priceAdd: number; sort: number }>
   }>
+}
+
+export type StatsPeriod = 'day' | 'week' | 'month' | 'year'
+
+export interface StatsBucket {
+  key: string
+  label: string
+  orders: number
+  cancelled: number
+  revenue: number
+  cups: number
+  customers: number
+}
+
+export interface Stats {
+  period: StatsPeriod
+  buckets: StatsBucket[]
+  total: {
+    orders: number
+    cancelled: number
+    revenue: number
+    cups: number
+    customers: number
+    avgOrder: number
+  }
+  byStatus: Array<{ status: string; count: number }>
+  byChannel: Array<{ channel: string; count: number }>
+  byReceiveMode: Array<{ mode: string; count: number }>
+  byPayment: Array<{ method: string; count: number }>
+  topItems: Array<{ name: string; optionSummary: string; qty: number; revenue: number }>
+  topCustomers: Array<{ name: string; orders: number; revenue: number }>
 }

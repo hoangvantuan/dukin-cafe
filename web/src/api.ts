@@ -1,4 +1,4 @@
-import type { AdminOrder, AdminSettings, Customer, Intake, ItemPayload, MenuItem, OrderStatus } from './types'
+import type { AdminOrder, AdminSettings, Customer, Intake, ItemPayload, MenuItem, OrderStatus, Stats, StatsPeriod, TeamMember } from './types'
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -48,6 +48,9 @@ export const api = {
       body: JSON.stringify(body),
     }),
   adminIntake: () => req<Intake>('/api/admin/intake'),
+  teamMembers: () => req<{ members: TeamMember[] }>('/api/admin/teams/members'),
+  stats: (period: StatsPeriod, span?: number) =>
+    req<Stats>(`/api/admin/stats?period=${period}${span ? `&span=${span}` : ''}`),
 
   adminMenu: () => req<{ items: MenuItem[] }>('/api/admin/menu'),
   saveItem: (item: ItemPayload, id?: number) =>

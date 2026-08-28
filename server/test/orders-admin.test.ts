@@ -133,7 +133,7 @@ test('cấu hình người nhận thông báo bỏ dòng thiếu mã Teams', asy
     payload: {
       settings: {
         notifyRecipients: JSON.stringify([
-          { name: 'Bếp DUKIN', teamsId: '29:bep' },
+          { name: 'Bếp DUKIN', teamsId: '29:bep', email: 'bep@dukin.test' },
           { name: 'Thiếu mã', teamsId: '' },
           { name: '', teamsId: '29:khong-ten' },
         ]),
@@ -145,7 +145,9 @@ test('cấu hình người nhận thông báo bỏ dòng thiếu mã Teams', asy
   const s = await app
     .inject({ url: '/api/admin/settings', headers: { cookie } })
     .then((r) => r.json() as { settings: { notifyRecipients: string; notifyCustomerOnNew: string } })
-  assert.deepEqual(JSON.parse(s.settings.notifyRecipients), [{ name: 'Bếp DUKIN', teamsId: '29:bep' }])
+  assert.deepEqual(JSON.parse(s.settings.notifyRecipients), [
+    { name: 'Bếp DUKIN', teamsId: '29:bep', email: 'bep@dukin.test' },
+  ])
   assert.equal(s.settings.notifyCustomerOnNew, '1')
   setSettings({ notifyRecipients: '[]' })
 })
@@ -293,4 +295,59 @@ test('trần đơn giữ đúng khi nhiều Khách đặt cùng lúc', async () 
   } finally {
     setSettings({ dailyCapacity: '0' })
   }
+})
+
+test('tuyến thống kê trả số liệu theo kỳ và chặn tham số sai', async () => {
+  const cookie = await login()
+  const r = await app
+    .inject({ url: '/api/admin/stats?period=day', headers: { cookie } })
+    .then((x) => x.json() as { period: string; buckets: unknown[]; total: { orders: number } })
+  assert.equal(r.period, 'day')
+  assert.equal(r.buckets.length, 14, 'mặc định 14 ngày gần nhất')
+  assert.ok(r.total.orders > 0, 'các test trước đã tạo đơn nên phải có số liệu')
+
+  const thang = await app
+    .inject({ url: '/api/admin/stats?period=month&span=3', headers: { cookie } })
+    .then((x) => x.json() as { period: string; buckets: Array<{ key: string }> })
+  assert.equal(thang.period, 'month')
+  assert.equal(thang.buckets.length, 3)
+  assert.match(thang.buckets[0].key, /^\d{4}-\d{2}$/)
+
+  // Kỳ lạ thì rơi về mặc định, span quá lớn thì bị chặn.
+  const la = await app
+    .inject({ url: '/api/admin/stats?period=thap-ky', headers: { cookie } })
+    .then((x) => x.json() as { period: string })
+  assert.equal(la.period, 'day')
+  const qua = await app.inject({ url: '/api/admin/stats?span=999', headers: { cookie } })
+  assert.equal(qua.statusCode, 400)
+})
+
+test('thống kê không tính đơn đã hủy vào doanh thu', async () => {
+  const cookie = await login()
+  const truoc = await app
+    .inject({ url: '/api/admin/stats?period=year&span=1', headers: { cookie } })
+    .then((x) => x.json() as { total: { revenue: number; cancelled: number } })
+
+  const { id } = await placeOrder('Huy Ngay')
+  const giua = await app
+    .inject({ url: '/api/admin/stats?period=year&span=1', headers: { cookie } })
+    .then((x) => x.json() as { total: { revenue: number } })
+  assert.ok(giua.total.revenue > truoc.total.revenue, 'đơn mới làm doanh thu tăng')
+
+  await app.inject({
+    method: 'PATCH',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: { status: 'cancelled' },
+  })
+  const sau = await app
+    .inject({ url: '/api/admin/stats?period=year&span=1', headers: { cookie } })
+    .then((x) => x.json() as { total: { revenue: number; cancelled: number } })
+  assert.equal(sau.total.revenue, truoc.total.revenue, 'hủy xong doanh thu trở lại như cũ')
+  assert.equal(sau.total.cancelled, truoc.total.cancelled + 1)
+})
+
+test('thống kê cần đăng nhập', async () => {
+  const res = await app.inject({ url: '/api/admin/stats' })
+  assert.equal(res.statusCode, 401)
 })

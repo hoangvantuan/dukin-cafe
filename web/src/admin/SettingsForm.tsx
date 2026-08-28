@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { AdminSettings, NotifyRecipient } from '../types'
+import type { AdminSettings, NotifyRecipient, TeamMember } from '../types'
+import { MemberPicker } from './TeamsPicker'
 
 const BANKS: Array<{ code: string; name: string }> = [
   { code: 'ACB', name: 'ACB (Ngân hàng Á Châu)' },
@@ -233,6 +234,7 @@ export default function SettingsForm() {
 /**
  * Ai được Bot DUKIN nhắc khi có đơn mới. Danh sách này tách khỏi Danh bạ Khách:
  * đây là người phụ trách pha chế và giao hàng, không phải người đặt.
+ * Chọn từ danh sách nhóm Teams vì Teams chỉ gắn thẻ được bằng mã 29:...
  */
 function NotifySection({
   recipients,
@@ -243,6 +245,8 @@ function NotifySection({
   notifyCustomer: boolean
   onChange: (recipients: string, notifyCustomer: boolean) => void
 }) {
+  const [picking, setPicking] = useState(false)
+
   const list: NotifyRecipient[] = (() => {
     try {
       const parsed = JSON.parse(recipients || '[]') as unknown
@@ -254,13 +258,23 @@ function NotifySection({
 
   const write = (next: NotifyRecipient[]): void => onChange(JSON.stringify(next), notifyCustomer)
 
+  // Bấm một người đang có thì bỏ ra, bấm người chưa có thì thêm vào.
+  function toggle(m: TeamMember): void {
+    const has = list.some((r) => r.teamsId === m.teamsId)
+    write(
+      has
+        ? list.filter((r) => r.teamsId !== m.teamsId)
+        : [...list, { name: m.name, teamsId: m.teamsId, email: m.email }],
+    )
+  }
+
   return (
     <section className="admin-editor-card">
       <div className="editor-head">
         <h3>4. Báo cho ai khi có đơn mới</h3>
         <span className="editor-sub">
-          Bot DUKIN mở luồng đơn trên kênh Teams và gắn thẻ những người dưới đây. Mã người dùng lấy
-          trong hồ sơ Microsoft Teams, mục "Copy user ID".
+          Bot DUKIN mở luồng đơn trên kênh Teams và gắn thẻ những người dưới đây. Bấm "Chọn từ nhóm
+          Teams" rồi gõ tên hoặc email để tìm.
         </span>
       </div>
 
@@ -272,71 +286,47 @@ function NotifySection({
         />
         <span>
           <b>Nhắc luôn Khách đặt đơn</b>
-          <small>Chỉ nhắc được khi Khách đã liên kết mã Teams trong tab Danh bạ Khách</small>
+          <small>Chỉ nhắc được khi Khách đã liên kết tài khoản Teams trong tab Danh bạ Khách</small>
         </span>
       </label>
 
-      <div className="admin-table-wrapper">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th style={{ width: '35%' }}>Tên hiển thị khi gắn thẻ</th>
-              <th>Mã người dùng Teams</th>
-              <th className="th-actions">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((r, i) => (
-              <tr key={i}>
-                <td>
-                  <input
-                    className="admin-input table-inline-input"
-                    value={r.name}
-                    placeholder="Ví dụ: Bếp DUKIN"
-                    onChange={(e) =>
-                      write(list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    className="admin-input table-inline-input"
-                    value={r.teamsId}
-                    placeholder="29:..."
-                    onChange={(e) =>
-                      write(list.map((x, j) => (j === i ? { ...x, teamsId: e.target.value } : x)))
-                    }
-                  />
-                </td>
-                <td className="td-actions">
-                  <button
-                    className="btn-table-delete"
-                    onClick={() => write(list.filter((_, j) => j !== i))}
-                  >
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {list.length === 0 && (
-              <tr>
-                <td colSpan={3} className="td-empty">
-                  Chưa có ai. Khi để trống, bot vẫn mở luồng đơn trên kênh nhưng không gắn thẻ ai.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="picked-chips">
+        {list.map((r) => (
+          <span key={r.teamsId} className="person-chip">
+            <span className="chip-who">
+              <b>{r.name}</b>
+              {r.email && <small>{r.email}</small>}
+            </span>
+            <button
+              className="chip-remove"
+              title="Bỏ người này"
+              onClick={() => write(list.filter((x) => x.teamsId !== r.teamsId))}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {list.length === 0 && (
+          <p className="muted picker-hint">
+            Chưa chọn ai. Bot vẫn mở luồng đơn trên kênh nhưng không gắn thẻ ai cả.
+          </p>
+        )}
       </div>
 
-      <div className="editor-actions">
-        <button
-          className="btn-admin-light"
-          onClick={() => write([...list, { name: '', teamsId: '' }])}
-        >
-          + Thêm người nhận
-        </button>
-      </div>
+      {picking ? (
+        <MemberPicker
+          mode="many"
+          selectedIds={list.map((r) => r.teamsId)}
+          onPick={toggle}
+          onClose={() => setPicking(false)}
+        />
+      ) : (
+        <div className="editor-actions">
+          <button className="btn-admin-light" onClick={() => setPicking(true)}>
+            + Chọn từ nhóm Teams
+          </button>
+        </div>
+      )}
     </section>
   )
 }

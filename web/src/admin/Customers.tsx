@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { Customer } from '../types'
+import type { Customer, TeamMember } from '../types'
+import { MemberPicker, useTeamMembers } from './TeamsPicker'
 
 /** Danh bạ Khách: tên quen kèm mã người dùng Teams để nhắc trong Luồng Đơn hàng. */
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [name, setName] = useState('')
-  const [teamsId, setTeamsId] = useState('')
   const [error, setError] = useState('')
   const [okMsg, setOkMsg] = useState('')
 
@@ -19,9 +19,13 @@ export default function Customers() {
     }
   }
 
+  // Tải sẵn danh sách nhóm để bảng hiện được tên người đã liên kết, không chỉ mã.
+  const { members, load: loadMembers } = useTeamMembers()
+
   useEffect(() => {
     void load()
-  }, [])
+    loadMembers()
+  }, [loadMembers])
 
   async function save(): Promise<void> {
     if (!name.trim()) {
@@ -31,9 +35,8 @@ export default function Customers() {
     setError('')
     setOkMsg('')
     try {
-      await api.saveCustomer(name.trim(), teamsId.trim())
+      await api.saveCustomer(name.trim(), '')
       setName('')
-      setTeamsId('')
       setOkMsg('Đã thêm khách vào danh bạ.')
       setTimeout(() => setOkMsg(''), 2500)
       await load()
@@ -74,19 +77,11 @@ export default function Customers() {
             />
           </div>
 
-          <div className="field-block">
-            <label>Mã người dùng Microsoft Teams</label>
-            <input
-              className="admin-input"
-              value={teamsId}
-              onChange={(e) => setTeamsId(e.target.value)}
-              placeholder="8:orgid:..."
-            />
-          </div>
         </div>
 
         <p className="admin-hint-text">
-          💡 Mã Teams lấy từ hồ sơ Microsoft Teams (mục "Copy user ID") hoặc Azure AD. Bot DUKIN sẽ gắn thẻ tên đồng nghiệp này trên nhóm Teams khi đơn hàng được cập nhật.
+          💡 Liên kết Khách với tài khoản Teams ở cột bên phải bảng dưới: bấm "Liên kết Teams" rồi gõ
+          tên hoặc email để tìm. Bot DUKIN gắn thẻ đúng người này mỗi khi đơn của họ đổi trạng thái.
         </p>
 
         {error && <div className="admin-error-alert">{error}</div>}
@@ -107,7 +102,7 @@ export default function Customers() {
             <thead>
               <tr>
                 <th style={{ width: '30%' }}>Tên đồng nghiệp</th>
-                <th>Mã người dùng Teams</th>
+                <th>Tài khoản Teams được gắn thẻ</th>
                 <th className="th-actions">Thao tác</th>
               </tr>
             </thead>
@@ -116,6 +111,7 @@ export default function Customers() {
                 <CustomerRow
                   key={c.id}
                   customer={c}
+                  members={members}
                   onSave={(v) => void updateRow(c, v)}
                   onDelete={() => void remove(c.id)}
                 />
@@ -137,15 +133,20 @@ export default function Customers() {
 
 function CustomerRow({
   customer,
+  members,
   onSave,
   onDelete,
 }: {
   customer: Customer
+  members: TeamMember[]
   onSave: (teamsId: string) => void
   onDelete: () => void
 }) {
-  const [value, setValue] = useState(customer.teamsId)
-  const dirty = value !== customer.teamsId
+  const [picking, setPicking] = useState(false)
+  const linked = members.find((m) => m.teamsId === customer.teamsId)
+  const hasId = customer.teamsId.length > 0
+  // Teams chỉ gắn thẻ được bằng mã 29:...; mã kiểu cũ lưu tay sẽ không nhắc được ai.
+  const suspect = hasId && !customer.teamsId.startsWith('29:')
 
   return (
     <tr>
@@ -153,19 +154,41 @@ function CustomerRow({
         <b>{customer.name}</b>
       </td>
       <td>
-        <input
-          className="admin-input table-inline-input"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="8:orgid:..."
-        />
-      </td>
-      <td className="td-actions">
-        {dirty && (
-          <button className="btn-table-save" onClick={() => onSave(value)}>
-            Lưu
+        {picking ? (
+          <MemberPicker
+            mode="one"
+            selectedIds={hasId ? [customer.teamsId] : []}
+            onPick={(m) => {
+              onSave(m.teamsId)
+              setPicking(false)
+            }}
+            onClose={() => setPicking(false)}
+          />
+        ) : hasId ? (
+          <span className="linked-person">
+            <span className="chip-who">
+              <b>{linked?.name ?? 'Tài khoản ngoài nhóm'}</b>
+              <small>{linked?.email ?? customer.teamsId}</small>
+            </span>
+            {suspect && (
+              <span className="teams-badge warn" title="Teams chỉ gắn thẻ được bằng mã 29:...">
+                Mã không dùng được
+              </span>
+            )}
+            <button className="btn-admin-light btn-inline" onClick={() => setPicking(true)}>
+              Đổi
+            </button>
+            <button className="btn-admin-light btn-inline" onClick={() => onSave('')}>
+              Bỏ liên kết
+            </button>
+          </span>
+        ) : (
+          <button className="btn-admin-light btn-inline" onClick={() => setPicking(true)}>
+            + Liên kết Teams
           </button>
         )}
+      </td>
+      <td className="td-actions">
         <button className="btn-table-delete" onClick={onDelete}>
           Xóa
         </button>
@@ -173,4 +196,3 @@ function CustomerRow({
     </tr>
   )
 }
-

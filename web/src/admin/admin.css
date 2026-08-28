@@ -1138,3 +1138,268 @@ body {
   color: #6b5c4a;
   font-size: 13px;
 }
+
+/* ============ CHỌN NGƯỜI TỪ NHÓM TEAMS ============ */
+
+.member-picker {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.picker-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.picker-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-hint,
+.picker-error {
+  margin: 10px 2px 2px;
+  font-size: 13px;
+}
+
+/* Danh sách cuộn trong khung, để bảng Danh bạ không giãn dài khi mở. */
+.picker-list {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.picker-row:hover {
+  border-color: #c9a227;
+  background: rgba(201, 162, 39, 0.06);
+}
+
+.picker-row.picked {
+  border-color: #c9a227;
+  background: rgba(201, 162, 39, 0.12);
+}
+
+.picker-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 50%;
+  background: #2c2118;
+  color: #f5efe4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.picker-who,
+.chip-who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.picker-who small,
+.chip-who small {
+  color: #6b5c4a;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-mark {
+  flex: 0 0 auto;
+  color: #8a7550;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Người đã chọn, hiện thành thẻ nhỏ. */
+.picked-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.chip-remove {
+  border: none;
+  background: transparent;
+  color: #a0522d;
+  font: inherit;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.chip-remove:hover {
+  color: #c0392b;
+}
+
+.linked-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-inline {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+/* ============ MÀN THỐNG KÊ ============ */
+
+.stats-range-hint {
+  color: #6b5c4a;
+  font-size: 13px;
+}
+
+/* Biểu đồ cột dựng bằng CSS thuần, không thêm thư viện vẽ. */
+.revenue-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 16px 4px 4px;
+}
+
+.chart-col {
+  flex: 1 0 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+}
+
+.chart-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a7550;
+  height: 14px;
+  white-space: nowrap;
+}
+
+.chart-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 150px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px 6px 0 0;
+}
+
+.chart-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #d4b448, #a8862a);
+  transition: height 0.25s ease;
+}
+
+.chart-bar.is-peak {
+  background: linear-gradient(180deg, #2c2118, #4a3a28);
+}
+
+.chart-label {
+  font-size: 11px;
+  color: #2c2118;
+  text-align: center;
+  line-height: 1.25;
+  word-break: keep-all;
+}
+
+.chart-sub {
+  font-size: 10px;
+  color: #9c8d7c;
+}
+
+/* Hai cột trên máy tính, một cột trên điện thoại. */
+.stats-two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  font-size: 13px;
+  color: #2c2118;
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #d4b448, #a8862a);
+  transition: width 0.25s ease;
+}
+
+.bar-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b5c4a;
+  white-space: nowrap;
+}
+
+.admin-table th.num,
+.admin-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}

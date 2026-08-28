@@ -71,12 +71,15 @@ Thẻ **Cấu hình** trong `/quan-tri`:
 - **Thanh toán chuyển khoản**: chọn ngân hàng, nhập số tài khoản, tên chủ tài khoản. Khách chọn "Chuyển khoản" sẽ thấy mã QR VietQR sinh sẵn, nội dung chuyển khoản dạng `DUKIN #mãsố tênkhách` để đối chiếu.
 - **Link Zalo**: hiện ở trang hoàn tất để khách tự nhắn khi cần đổi đơn.
 - **Giới hạn đơn mỗi ngày**: mặc định 0 tức không giới hạn. Đặt một con số nếu muốn chặn những hôm quá tải; đủ trần thì Trang bán báo "hôm nay quán đã nhận đủ đơn" và khóa nút đặt.
-- **Báo cho ai khi có đơn mới**: danh sách người phụ trách được Bot DUKIN gắn thẻ trên kênh Teams mỗi khi có đơn (chủ quán, người pha chế, người giao). Kèm công tắc **Nhắc luôn Khách đặt đơn**, chỉ có tác dụng khi Khách đã được liên kết mã Teams trong thẻ Danh bạ.
+- **Báo cho ai khi có đơn mới**: danh sách người phụ trách được Bot DUKIN gắn thẻ trên kênh Teams mỗi khi có đơn (chủ quán, người pha chế, người giao). Bấm "+ Chọn từ nhóm Teams", gõ tên hoặc email để tìm rồi bấm chọn. Kèm công tắc **Nhắc luôn Khách đặt đơn**, chỉ có tác dụng khi Khách đã được liên kết tài khoản Teams trong thẻ Danh bạ.
 
-Thẻ **Danh bạ**: khách tự xuất hiện theo tên khi đặt. Tên khách là duy nhất không phân biệt hoa thường, nên "Hoàng Tuấn" và "hoàng tuấn" là một người; sửa lại chính tả ở đây thì các đơn cũ của người đó cũng đổi tên theo. Dấu tiếng Việt vẫn phân biệt: "Hoàng" và "Hoang" là hai người. Muốn bot nhắc ai thì nhập mã Teams của người đó, dạng `8:orgid:<Object ID>`. Lấy Object ID: Azure Portal → Microsoft Entra ID → Users → chọn người → cột Object ID.
+Thẻ **Danh bạ**: khách tự xuất hiện theo tên khi đặt. Tên khách là duy nhất không phân biệt hoa thường, nên "Hoàng Tuấn" và "hoàng tuấn" là một người; sửa lại chính tả ở đây thì các đơn cũ của người đó cũng đổi tên theo. Dấu tiếng Việt vẫn phân biệt: "Hoàng" và "Hoang" là hai người. Muốn bot nhắc ai thì bấm "+ Liên kết Teams" ở dòng của người đó rồi gõ tên hoặc email để tìm; danh sách lấy thẳng từ nhóm Teams đã cài Bot DUKIN nên không phải đi tìm mã ở đâu cả.
+
+Không nhập mã Teams bằng tay nữa. Teams chỉ gắn thẻ được bằng mã dạng `29:...` lấy từ chính nhóm, không nhận email và cũng không nhận Object ID dạng `8:orgid:...` của Azure. Dòng nào còn mã kiểu cũ sẽ hiện nhãn "Mã không dùng được", bấm "Đổi" để chọn lại.
 
 ## 5. Vận hành thường ngày
 
+- **Thẻ Thống kê**: doanh thu và tình trạng đặt đơn, xem theo Ngày (14 ngày gần nhất), Tuần (12 tuần), Tháng (12 tháng) hoặc Năm (5 năm). Có biểu đồ doanh thu, số ly đã pha, số khách, phân bố trạng thái đơn, cách khách đặt và nhận, món bán chạy và khách mua nhiều nhất. Doanh thu luôn bỏ đơn đã hủy.
 - **Thẻ Đơn hàng**: mở ra là tab **Cần xử lý**, liệt kê mọi đơn chưa Hoàn tất và chưa Hủy, gom theo ngày khách đặt. Danh sách tự làm mới mỗi 20 giây và huy hiệu đỏ trên tab đếm số đơn mới, nên không cần tải lại trang. Tab **Theo ngày đặt** dùng để đối sổ một ngày cụ thể. Bấm nút chuyển trạng thái theo luồng: Mới → Đã xác nhận → Đã thu tiền → Hoàn tất (hoặc Hủy). Mỗi lần bấm, bot trả lời vào Luồng Đơn hàng trên Teams.
 - **Nhập hộ (Zalo)**: nút "+ Nhập hộ (Zalo)" để tạo đơn thay khách nhắn Zalo, đơn gắn nhãn Zalo.
 - **Thẻ Thực đơn**: thêm, sửa, xóa món; mỗi món có nhóm tùy chọn (ví dụ Kích cỡ) với mức cộng giá từng lựa chọn; bỏ chọn "Còn bán" để ẩn món tạm thời.
@@ -123,7 +126,8 @@ Máy `pc` có sẵn kopia: nên thêm đường dẫn `~/projects/dukin-cafe/dat
 | Đơn không lên Teams | Xem mục 3.4; kiểm tra App Secret còn hiệu lực (Azure, secrets có hạn dùng) |
 | Khám nhật ký | `cd ~/projects/dukin-cafe && docker compose logs -f --tail=100 app` |
 | Khách báo quán đã đủ đơn | Đã chạm giới hạn đơn mỗi ngày, tăng hoặc đặt 0 trong thẻ Cấu hình |
-| Bot không gắn thẻ đúng người | Kiểm tra mã Teams trong mục "Báo cho ai khi có đơn mới" và trong thẻ Danh bạ |
+| Bot không gắn thẻ đúng người | Vào Cấu hình mục 4 và thẻ Danh bạ, chọn lại người từ danh sách nhóm Teams |
+| Không tải được danh sách nhóm Teams | Bot chưa được cài vào nhóm, hoặc App Secret hết hạn; xem mục 3.3 và 3.4 |
 | Mất mật khẩu quản trị | Sửa lại `ADMIN_PASSWORD` trong `.env` rồi `docker compose up -d` |
 
 ## Tổng quan luồng hệ thống

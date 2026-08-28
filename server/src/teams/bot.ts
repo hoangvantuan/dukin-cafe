@@ -55,7 +55,7 @@ export async function getBotToken(cfg: BotConfig): Promise<string> {
 }
 
 export interface Mention {
-  /** Mã người dùng Teams dạng 8:orgid:... */
+  /** Mã người dùng Teams dạng 29:..., lấy từ roster nhóm chứ không phải Object ID của Azure. */
   teamsId: string
   name: string
 }
@@ -117,4 +117,60 @@ export async function sendOrderReply(
   msg: OutgoingMessage,
 ): Promise<void> {
   await sendMessage(cfg, `${cfg.convId};messageid=${rootMessageId}`, msg)
+}
+
+export interface TeamMember {
+  /** Mã Teams dùng khi gắn thẻ, dạng 29:... */
+  teamsId: string
+  name: string
+  email: string
+}
+
+/**
+ * Danh sách người trong nhóm Teams đã cài Bot DUKIN.
+ * Teams chỉ nhận mã 29:... khi gắn thẻ, không nhận email hay Object ID của Azure,
+ * nên chủ quán chọn người từ danh sách này thay vì tự đi tìm chuỗi mã.
+ * Nhóm đông thì /members trả lỗi, khi đó dùng /pagedmembers theo từng trang.
+ */
+export async function listTeamMembers(cfg: BotConfig): Promise<TeamMember[]> {
+  const token = await getBotToken(cfg)
+  const base = `${cfg.serviceUrl}v3/conversations/${encodeURIComponent(cfg.convId)}`
+  const headers = { authorization: `Bearer ${token}` }
+
+  interface RawMember {
+    id?: string
+    name?: string
+    email?: string
+    userPrincipalName?: string
+    givenName?: string
+    surname?: string
+  }
+  const shape = (m: RawMember): TeamMember | null => {
+    if (!m.id) return null
+    const name = m.name || [m.givenName, m.surname].filter(Boolean).join(' ') || m.email || m.id
+    return { teamsId: m.id, name, email: m.email ?? m.userPrincipalName ?? '' }
+  }
+
+  const res = await fetch(`${base}/members`, { headers, signal: AbortSignal.timeout(8000) })
+  if (res.ok) {
+    const raw = (await res.json()) as RawMember[]
+    return raw.map(shape).filter((m): m is TeamMember => m !== null)
+  }
+
+  const out: TeamMember[] = []
+  let token2 = ''
+  do {
+    const url = `${base}/pagedmembers${token2 ? `?continuationToken=${encodeURIComponent(token2)}` : ''}`
+    const page = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+    if (!page.ok) {
+      throw new Error(`Đọc danh sách nhóm thất bại: ${page.status} ${await page.text().catch(() => '')}`)
+    }
+    const data = (await page.json()) as { members?: RawMember[]; continuationToken?: string }
+    for (const m of data.members ?? []) {
+      const shaped = shape(m)
+      if (shaped) out.push(shaped)
+    }
+    token2 = data.continuationToken ?? ''
+  } while (token2)
+  return out
 }

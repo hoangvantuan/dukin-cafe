@@ -75,12 +75,20 @@ Chuyển khoản theo mã QR khi đặt, hoặc tiền mặt khi nhận hàng.
 _Avoid_: thanh toán trực tuyến, cổng thanh toán
 
 **Danh bạ Khách**:
-Danh sách tên Khách quen kèm mã người dùng Microsoft Teams, chủ quán tự cấu hình tay để nhắc Khách trong Luồng Đơn hàng. Mỗi Khách đúng một dòng.
+Danh sách tên Khách quen kèm tài khoản Microsoft Teams đã liên kết, để nhắc Khách trong Luồng Đơn hàng. Mỗi Khách đúng một dòng.
 _Avoid_: liên hệ, contact
 
+**Liên kết Teams**:
+Việc gắn một Khách hoặc một Người phụ trách với một tài khoản trong nhóm Microsoft Teams, chọn từ danh sách nhóm chứ không gõ tay. Teams chỉ gắn thẻ được bằng mã dạng 29:..., không nhận email.
+_Avoid_: mapping, gán ID, tag
+
 **Người phụ trách**:
-Người của quán được Bot DUKIN gắn thẻ khi có đơn mới (chủ quán, người pha chế, người giao), khai riêng trong Cấu hình, không nằm trong Danh bạ Khách.
+Người của quán được Bot DUKIN gắn thẻ khi có đơn mới (chủ quán, người pha chế, người giao), chọn riêng trong Cấu hình, không nằm trong Danh bạ Khách.
 _Avoid_: admin, người nhận thông báo, staff
+
+**Kỳ thống kê**:
+Cách gộp số liệu bán hàng theo thời gian: Ngày, Tuần (bắt đầu từ thứ Hai), Tháng hoặc Năm. Doanh thu mọi kỳ đều bỏ Đơn hàng đã hủy.
+_Avoid_: period, khoảng, range
 
 **Luồng Đơn hàng**:
 Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng. Mỗi tin là một Thẻ đơn hàng.
