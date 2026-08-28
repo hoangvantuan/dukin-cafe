@@ -6,8 +6,8 @@ Tài liệu cho chủ quán tự cấu hình phần còn lại và vận hành l
 
 | Thứ gì | Địa chỉ |
 | --- | --- |
-| Trang bán (khách) | `http://100.123.116.92:8090/dat-hang` (Tailscale) hoặc tên miền tunnel sau khi làm mục 2 |
-| Trang quản lý (chủ quán) | `http://100.123.116.92:8090/quan-tri` |
+| Trang bán (khách) | `https://dukin.hoangvantuan.com/dat-hang` (bản dự phòng nội bộ qua Tailscale: `http://100.123.116.92:8090/dat-hang`) |
+| Trang quản lý (chủ quán) | `https://dukin.hoangvantuan.com/quan-tri` |
 | Mật khẩu quản trị | trong `~/projects/dukin-cafe/.env`, dòng `ADMIN_PASSWORD` |
 | Khóa bot Teams | trong `.env`, dòng `TEAMS_WEBHOOK_SECRET` |
 | Dữ liệu đơn | `~/projects/dukin-cafe/data/dukin.sqlite` |
@@ -26,14 +26,12 @@ cd ~/projects/dukin-cafe && docker compose up -d   # tạo lại container với
 
 ## 2. Cloudflare Tunnel (HTTPS công khai)
 
-Làm trên trang Cloudflare Zero Trust (one.dash.cloudflare.com):
+Mục này đã làm xong với tên miền `dukin.hoangvantuan.com` (Cloudflare Tunnel trỏ về `http://localhost:8090`, đã kiểm chứng HTTPS hoạt động). Ghi lại để đối chiếu cấu hình:
 
 1. **Networks → Tunnels → Create a tunnel**, loại Cloudflared, đặt tên `dukin`.
 2. Chạy lệnh cài connector mà trang hiện ra, ngay trên máy `pc` (chọn bản Docker hoặc gói hệ điều hành tùy cách bạn quản lý). Connector phải chạy thường trực.
-3. Ở tab **Public Hostname** của tunnel: thêm hostname muốn dùng (ví dụ `order.ten-mien.com`), Service đặt **HTTP → `localhost:8090`**. DNS record tự tạo.
-4. Kiểm tra: mở `https://order.ten-mien.com/dat-hang` thấy thực đơn là được.
-
-Sau bước này, dùng tên miền thay cho `100.123.116.92:8090` ở mọi nơi (khách, bot, và hai mục dưới).
+3. Ở tab **Public Hostname** của tunnel: thêm hostname `dukin.hoangvantuan.com`, Service đặt **HTTP → `localhost:8090`**. DNS record tự tạo.
+4. Kiểm tra: mở `https://dukin.hoangvantuan.com/dat-hang` thấy thực đơn là được.
 
 ## 3. Bot Teams (Bot DUKIN)
 
@@ -45,7 +43,7 @@ Sau bước này, dùng tên miền thay cho `100.123.116.92:8090` ở mọi nơ
 4. Vào Azure Bot → **Configuration**: Messaging endpoint đặt:
 
    ```
-   https://order.ten-mien.com/api/teams/events?secret=<TEAMS_WEBHOOK_SECRET trong .env>
+   https://dukin.hoangvantuan.com/api/teams/events?secret=<TEAMS_WEBHOOK_SECRET trong .env>
    ```
 
    (đọc khóa: `ssh pc 'grep TEAMS_WEBHOOK_SECRET ~/projects/dukin-cafe/.env'`). Bấm Apply.
