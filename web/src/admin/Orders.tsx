@@ -3,13 +3,26 @@ import { api, fmtVnd, vnToday, type PlaceOrderBody } from '../api'
 import type { AdminOrder, BrewSheet, Intake, MenuItem, OrderStatus } from '../types'
 import OrderEditor from './OrderEditor'
 
+/**
+ * Bước tiếp theo hợp lý của từng Trạng thái Đơn hàng, tức đường đi thường
+ * ngày Mới → Đã xác nhận → Đã thu tiền → Hoàn tất. Đây là nút chính duy nhất
+ * trên thẻ; những bước còn lại nằm sau nút mở rộng.
+ */
+const MAIN_STEP: Record<OrderStatus, OrderStatus | null> = {
+  new: 'confirmed',
+  confirmed: 'paid',
+  paid: 'done',
+  done: null,
+  cancelled: null,
+}
+
 /** Bước chuyển tiếp chủ quán bấm được, khớp ALLOWED_TRANSITIONS phía máy chủ. */
 const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: string; btnClass: string }>> = {
   new: [
-    { target: 'confirmed', label: '✓ Xác nhận', btnClass: 'btn-st-confirm' },
-    { target: 'paid', label: '💵 Thu tiền', btnClass: 'btn-st-paid' },
+    { target: 'confirmed', label: '✓ Xác nhận đơn', btnClass: 'btn-st-confirm' },
+    { target: 'paid', label: '💵 Đã thu tiền', btnClass: 'btn-st-paid' },
     { target: 'done', label: '☕ Hoàn tất', btnClass: 'btn-st-done' },
-    { target: 'cancelled', label: '✕ Hủy', btnClass: 'btn-st-cancel' },
+    { target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' },
   ],
   confirmed: [
     { target: 'paid', label: '💵 Đã thu tiền', btnClass: 'btn-st-paid' },
@@ -17,7 +30,7 @@ const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: stri
     { target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' },
   ],
   paid: [
-    { target: 'done', label: '☕ Hoàn tất giao', btnClass: 'btn-st-done' },
+    { target: 'done', label: '☕ Hoàn tất', btnClass: 'btn-st-done' },
     { target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' },
   ],
   done: [{ target: 'cancelled', label: '✕ Hủy đơn', btnClass: 'btn-st-cancel' }],
@@ -362,86 +375,186 @@ function OrderSection({
 
       <div className="orders-grid">
         {orders.map((o) => (
-          <article
-            key={o.id}
-            className={`admin-order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''} ${
-              o.status === 'new' ? 'is-fresh' : ''
-            }`}
-          >
-            <div className="card-top">
-              <div className="order-code-block">
-                <span className="order-code">{o.code}</span>
-                {o.channel === 'zalo' ? (
-                  <span className="channel-badge zalo">Zalo</span>
-                ) : (
-                  <span className="channel-badge web">Web</span>
-                )}
-                {!o.teamsThread && (
-                  <span className="teams-badge warn" title="Bot DUKIN chưa mở được Luồng Đơn hàng">
-                    Chưa lên Teams
-                  </span>
-                )}
-              </div>
-
-              <span className={`status-pill ${STATUS_CONFIG[o.status].class}`}>{o.statusLabel}</span>
-            </div>
-
-            <div className="card-customer-info">
-              <div className="customer-name">{o.customerName}</div>
-              <div className="delivery-mode">
-                {o.receiveMode === 'delivery' ? (
-                  <span className="mode-delivery">🚀 Giao: {o.location}</span>
-                ) : (
-                  <span className="mode-pickup">☕ Nhận tại quán</span>
-                )}
-              </div>
-            </div>
-
-            <div className="card-items-block">
-              <ul className="items-list">
-                {o.items.map((it, i) => (
-                  <li key={i} className="item-row">
-                    <span className="it-name">{it.name}</span>
-                    {it.optionSummary && <span className="it-opt">({it.optionSummary})</span>}
-                    <span className="it-qty">× {it.qty}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {o.note && (
-              <div className="card-note-box">
-                <span className="note-icon">📝</span>
-                <span className="note-text">{o.note}</span>
-              </div>
-            )}
-
-            <div className="card-financial-row">
-              <span className="pay-method">
-                {o.paymentMethod === 'transfer' ? '📱 Chuyển khoản VietQR' : '💵 Tiền mặt'}
-              </span>
-              <span className="order-total-price">{fmtVnd(o.total)}</span>
-            </div>
-
-            <div className="card-time-meta">Đặt lúc {vnTime(o.createdAt)}</div>
-
-            <div className="card-actions-row">
-              {/* Đơn đã hủy thì khóa hẳn, không sửa được nữa. */}
-              {o.status !== 'cancelled' && (
-                <button className="btn-action btn-st-edit" onClick={() => onEdit(o)}>
-                  ✏️ Sửa đơn
-                </button>
-              )}
-              {NEXT_ACTIONS[o.status].map((a) => (
-                <button key={a.target} className={`btn-action ${a.btnClass}`} onClick={() => onMove(o.id, a.target)}>
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          </article>
+          <OrderCard key={o.id} order={o} onMove={onMove} onEdit={onEdit} />
         ))}
       </div>
     </section>
+  )
+}
+
+/**
+ * Một thẻ Đơn hàng. Chỉ bày đúng một nút hành động chính là bước tiếp theo
+ * hợp lý; các bước ít gặp, Sửa đơn và Hủy đơn nằm sau nút mở rộng. Hủy đơn
+ * hỏi lại một lần vì chủ quán bấm trên điện thoại, bấm nhầm là hủy đơn của
+ * đồng nghiệp.
+ */
+function OrderCard({
+  order: o,
+  onMove,
+  onEdit,
+}: {
+  order: AdminOrder
+  onMove: (id: number, target: OrderStatus) => void
+  onEdit: (order: AdminOrder) => void
+}) {
+  const [openMore, setOpenMore] = useState(false)
+  const [askCancel, setAskCancel] = useState(false)
+
+  // Cùng một nguồn NEXT_ACTIONS, chỉ chia làm ba lối bày ra: bước chính, bước
+  // nhảy tắt ít gặp, và Hủy đơn. Bảng chuyển trạng thái phía máy chủ giữ nguyên.
+  const steps = NEXT_ACTIONS[o.status]
+  const main = steps.find((a) => a.target === MAIN_STEP[o.status]) ?? null
+  const jumps = steps.filter((a) => a !== main && a.target !== 'cancelled')
+  const cancel = steps.find((a) => a.target === 'cancelled') ?? null
+  // Đơn đã hủy khóa hẳn: không sửa, không chuyển trạng thái, không nút nào.
+  const canEdit = o.status !== 'cancelled'
+  const hasMore = jumps.length > 0 || cancel !== null || canEdit
+
+  function close(): void {
+    setOpenMore(false)
+    setAskCancel(false)
+  }
+
+  return (
+    <article
+      className={`admin-order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''} ${
+        o.status === 'new' ? 'is-fresh' : ''
+      }`}
+    >
+      <div className="card-top">
+        <div className="order-code-block">
+          <span className="order-code">{o.code}</span>
+          {o.channel === 'zalo' ? (
+            <span className="channel-badge zalo">Zalo</span>
+          ) : (
+            <span className="channel-badge web">Web</span>
+          )}
+          {!o.teamsThread && (
+            <span className="teams-badge warn" title="Bot DUKIN chưa mở được Luồng Đơn hàng">
+              Chưa lên Teams
+            </span>
+          )}
+        </div>
+
+        <span className={`status-pill ${STATUS_CONFIG[o.status].class}`}>{o.statusLabel}</span>
+      </div>
+
+      <div className="card-customer-info">
+        <div className="customer-name">{o.customerName}</div>
+        <div className="delivery-mode">
+          {o.receiveMode === 'delivery' ? (
+            <span className="mode-delivery">🚀 Giao: {o.location}</span>
+          ) : (
+            <span className="mode-pickup">☕ Nhận tại quán</span>
+          )}
+        </div>
+      </div>
+
+      <div className="card-items-block">
+        <ul className="items-list">
+          {o.items.map((it, i) => (
+            <li key={i} className="item-row">
+              <span className="it-name">{it.name}</span>
+              {it.optionSummary && <span className="it-opt">({it.optionSummary})</span>}
+              <span className="it-qty">× {it.qty}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {o.note && (
+        <div className="card-note-box">
+          <span className="note-icon">📝</span>
+          <span className="note-text">{o.note}</span>
+        </div>
+      )}
+
+      <div className="card-financial-row">
+        <span className="pay-method">
+          {o.paymentMethod === 'transfer' ? '📱 Chuyển khoản VietQR' : '💵 Tiền mặt'}
+        </span>
+        <span className="order-total-price">{fmtVnd(o.total)}</span>
+      </div>
+
+      <div className="card-time-meta">Đặt lúc {vnTime(o.createdAt)}</div>
+
+      {(main !== null || hasMore) && (
+        <div className="card-actions-row">
+          {main && (
+            <button
+              className={`btn-action btn-main-step ${main.btnClass}`}
+              onClick={() => onMove(o.id, main.target)}
+            >
+              {main.label}
+            </button>
+          )}
+          {hasMore && (
+            <button
+              className={`btn-action btn-more ${openMore ? 'is-open' : ''}`}
+              aria-expanded={openMore}
+              onClick={() => (openMore ? close() : setOpenMore(true))}
+            >
+              {openMore ? '✕ Đóng' : '⋯ Thêm'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {openMore && hasMore && (
+        <div className="card-more-actions">
+          {canEdit && (
+            <button
+              className="btn-action btn-st-edit"
+              onClick={() => {
+                close()
+                onEdit(o)
+              }}
+            >
+              ✏️ Sửa đơn
+            </button>
+          )}
+          {jumps.map((a) => (
+            <button
+              key={a.target}
+              className={`btn-action ${a.btnClass}`}
+              onClick={() => {
+                close()
+                onMove(o.id, a.target)
+              }}
+            >
+              {a.label}
+            </button>
+          ))}
+
+          {cancel && !askCancel && (
+            <button className="btn-action btn-st-cancel" onClick={() => setAskCancel(true)}>
+              {cancel.label}
+            </button>
+          )}
+          {cancel && askCancel && (
+            <div className="cancel-confirm">
+              <span className="cancel-question">
+                Hủy đơn {o.code} của {o.customerName}? Đơn đã hủy không sửa lại được.
+              </span>
+              <div className="cancel-choices">
+                <button
+                  className="btn-action btn-st-cancel"
+                  onClick={() => {
+                    close()
+                    onMove(o.id, 'cancelled')
+                  }}
+                >
+                  ✕ Hủy đơn thật
+                </button>
+                <button className="btn-action btn-keep" onClick={() => setAskCancel(false)}>
+                  Giữ đơn
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
   )
 }
 
