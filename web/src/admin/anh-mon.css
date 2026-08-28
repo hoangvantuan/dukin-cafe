@@ -1,0 +1,70 @@
+/* ============================================================
+   Ảnh Món trong Trang quản lý
+   Tách riêng khỏi admin.css để phần thực đơn tự mang kiểu dáng của nó.
+   ============================================================ */
+
+.anh-mon-khoi {
+  display: flex;
+  align-items: center;
+  gap: var(--dk-space-4);
+  flex-wrap: wrap;
+}
+
+.anh-mon-o {
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  border-radius: var(--dk-radius-md);
+  border: 1px solid var(--dk-parchment-600);
+  background: var(--dk-parchment-300);
+  object-fit: cover;
+}
+
+/* Chỗ đặt ảnh khi Món chưa có ảnh: nền trung tính, chữ nhắc việc cần làm. */
+.anh-mon-trong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--dk-space-2);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dk-brown-300);
+  background: var(--dk-parchment-400);
+}
+
+.anh-mon-nut {
+  display: flex;
+  align-items: center;
+  gap: var(--dk-space-2);
+  flex-wrap: wrap;
+}
+
+/* Ô chọn tệp thật bị ẩn; cái nhãn bọc ngoài mới là nút chủ quán bấm. */
+.anh-mon-chon {
+  cursor: pointer;
+}
+.anh-mon-chon input {
+  display: none;
+}
+
+.anh-mon-goi-y {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--dk-brown-300);
+}
+
+/* Ô ảnh nhỏ trong bảng danh sách Món. */
+.anh-o-nho {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: var(--dk-radius-sm);
+  border: 1px solid var(--dk-parchment-600);
+  background: var(--dk-parchment-400);
+  object-fit: cover;
+}
+td.td-anh {
+  width: 56px;
+}

@@ -94,7 +94,9 @@ CREATE TABLE IF NOT EXISTS menu_items (
   description TEXT NOT NULL DEFAULT '',
   price INTEGER NOT NULL,
   active INTEGER NOT NULL DEFAULT 1,
-  sort INTEGER NOT NULL DEFAULT 0
+  sort INTEGER NOT NULL DEFAULT 0,
+  -- Tên tệp ảnh trong config.imageDir; rỗng là Món chưa có ảnh.
+  image_file TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS option_groups (
@@ -244,6 +246,18 @@ function migrateDropSlots(): void {
   }
   db.prepare("DELETE FROM settings WHERE key = 'slotCapacity'").run()
 }
+
+/**
+ * Thêm cột ảnh cho Món. Chỉ nối thêm một cột có giá trị mặc định nên dữ liệu
+ * đang chạy không phải dựng lại bảng, Món cũ chỉ đơn giản là chưa có ảnh.
+ */
+function migrateMenuItemImage(): void {
+  const cols = allRows<{ name: string }>(db.prepare('PRAGMA table_info(menu_items)'))
+  if (cols.some((c) => c.name === 'image_file')) return
+  db.exec("ALTER TABLE menu_items ADD COLUMN image_file TEXT NOT NULL DEFAULT ''")
+}
+
+migrateMenuItemImage()
 
 /**
  * Danh bạ Khách định danh theo tên không phân biệt hoa thường.

@@ -22,6 +22,8 @@ export interface MenuItem {
   price: number
   active: boolean
   sort: number
+  /** Đường dẫn ảnh Món do máy chủ phát; rỗng là Món chưa có ảnh. */
+  image: string
   groups: MenuGroup[]
 }
 

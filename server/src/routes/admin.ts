@@ -1,7 +1,17 @@
 import type { FastifyInstance } from 'fastify'
 import { allRows, db, getRow, getSettings, setSettings, upsertCustomer, type CustomerRow } from '../db.js'
 import { COOKIE_NAME, isAdmin, passwordMatches, setSessionCookie } from '../auth.js'
-import { deleteItem, insertItemFull, menuTree, replaceItemFull, validateItemPayload } from '../menu.js'
+import {
+  clearItemImage,
+  decodeImageUpload,
+  deleteItem,
+  insertItemFull,
+  MAX_IMAGE_BYTES,
+  menuTree,
+  replaceItemFull,
+  setItemImage,
+  validateItemPayload,
+} from '../menu.js'
 import {
   ALLOWED_TRANSITIONS,
   createOrder,
@@ -194,6 +204,33 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     const id = Number((req.params as { id: string }).id)
     if (!Number.isInteger(id)) return reply.code(400).send({ error: 'Mã món không hợp lệ' })
     if (!deleteItem(id)) return reply.code(404).send({ error: 'Không thấy món' })
+    return { ok: true }
+  })
+
+  /**
+   * Ảnh Món gửi lên dạng chuỗi base64 trong thân JSON, không phải multipart:
+   * máy khách đã cắt vuông và nén WebP bằng canvas nên tệp rất nhẹ, và máy chủ
+   * khỏi phải mang thêm bộ đọc thân nhiều phần.
+   * Chặn trần thân yêu cầu ngay ở tuyến, để ảnh quá khổ bị loại trước khi đọc hết.
+   */
+  app.post(
+    '/api/admin/menu/:id/image',
+    { bodyLimit: Math.ceil((MAX_IMAGE_BYTES * 4) / 3) + 4096 },
+    async (req, reply) => {
+      const id = Number((req.params as { id: string }).id)
+      if (!Number.isInteger(id)) return reply.code(400).send({ error: 'Mã món không hợp lệ' })
+      const checked = decodeImageUpload(req.body)
+      if (!checked.ok) return reply.code(400).send({ error: checked.error })
+      const image = setItemImage(id, checked.bytes, checked.ext)
+      if (image == null) return reply.code(404).send({ error: 'Không thấy món' })
+      return { image }
+    },
+  )
+
+  app.delete('/api/admin/menu/:id/image', async (req, reply) => {
+    const id = Number((req.params as { id: string }).id)
+    if (!Number.isInteger(id)) return reply.code(400).send({ error: 'Mã món không hợp lệ' })
+    if (!clearItemImage(id)) return reply.code(404).send({ error: 'Không thấy món' })
     return { ok: true }
   })
 

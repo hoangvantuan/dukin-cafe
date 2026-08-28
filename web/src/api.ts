@@ -67,6 +67,14 @@ export const api = {
       body: JSON.stringify({ item }),
     }),
   deleteItem: (id: number) => req<{ ok: true }>(`/api/admin/menu/${id}`, { method: 'DELETE' }),
+  /** Ảnh đã cắt vuông và nén ở máy trước khi gửi, nên đi gọn trong thân JSON. */
+  saveItemImage: (id: number, data: string, type: string) =>
+    req<{ image: string }>(`/api/admin/menu/${id}/image`, {
+      ...POST,
+      body: JSON.stringify({ data, type }),
+    }),
+  removeItemImage: (id: number) =>
+    req<{ ok: true }>(`/api/admin/menu/${id}/image`, { method: 'DELETE' }),
 
   settings: () => req<{ settings: AdminSettings }>('/api/admin/settings'),
   saveSettings: (settings: AdminSettings) =>
@@ -89,10 +97,11 @@ export function fmtVnd(n: number): string {
 /**
  * Tiền dạng viết tắt như tờ thực đơn in: 20000 thành "20K", 5000 thành "5K".
  * Chỉ dùng cho Trang bán. Giá lẻ vẫn ghi đúng số: 12500 thành "12,5K".
- * Dưới một nghìn thì viết tắt hóa khó đọc nên trả về dạng đầy đủ.
+ * Dưới một nghìn thì viết tắt hóa khó đọc nên trả về dạng đầy đủ, riêng số không
+ * vẫn viết "0K" để khay trống không lạc dạng so với phần còn lại của Trang bán.
  */
 export function fmtVndShort(n: number): string {
-  if (n < 1000) return fmtVnd(n)
+  if (n > 0 && n < 1000) return fmtVnd(n)
   return `${(n / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}K`
 }
 

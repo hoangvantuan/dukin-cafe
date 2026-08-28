@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, fmtVnd } from '../api'
 import type { MenuItem } from '../types'
+import { catVuongVaNen } from './anhMon'
+import './anh-mon.css'
 
 interface DraftOption {
   name: string
@@ -51,6 +53,9 @@ export default function MenuEditor() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  /** Đường dẫn ảnh của Món đang mở trong form; rỗng là Món chưa có ảnh. */
+  const [anh, setAnh] = useState('')
+  const [dangXuLyAnh, setDangXuLyAnh] = useState(false)
 
   async function load(): Promise<void> {
     try {
@@ -100,6 +105,38 @@ export default function MenuEditor() {
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lưu món thất bại')
+    }
+  }
+
+  /**
+   * Ảnh gửi đi ngay lúc chủ quán chọn, không đợi bấm Lưu món: ảnh có điểm cuối
+   * riêng nên gửi liền là ít bước nhất, và chọn nhầm thì chọn lại là xong.
+   */
+  async function chonAnh(tep: File | null): Promise<void> {
+    if (!tep || editingId == null) return
+    setError('')
+    setDangXuLyAnh(true)
+    try {
+      const daNen = await catVuongVaNen(tep)
+      const r = await api.saveItemImage(editingId, daNen.data, daNen.type)
+      setAnh(r.image)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không thêm được ảnh cho món')
+    } finally {
+      setDangXuLyAnh(false)
+    }
+  }
+
+  async function xoaAnh(): Promise<void> {
+    if (editingId == null) return
+    setError('')
+    try {
+      await api.removeItemImage(editingId)
+      setAnh('')
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Xóa ảnh thất bại')
     }
   }
 
@@ -173,6 +210,44 @@ export default function MenuEditor() {
               onChange={(e) => setDraft({ ...draft, description: e.target.value })}
               placeholder="Phin nhỏ giọt, đắng thanh hậu ngọt..."
             />
+          </div>
+
+          <div className="field-block span-full">
+            <label>Ảnh Món</label>
+            {editingId == null ? (
+              <p className="anh-mon-goi-y">Lưu Món trước, rồi mở lại Món để thêm ảnh.</p>
+            ) : (
+              <div className="anh-mon-khoi">
+                {anh ? (
+                  <img className="anh-mon-o" src={anh} alt={`Ảnh ${draft.name}`} />
+                ) : (
+                  <div className="anh-mon-o anh-mon-trong">Chưa có ảnh</div>
+                )}
+                <div className="anh-mon-nut">
+                  <label className="btn-admin-light anh-mon-chon">
+                    {dangXuLyAnh ? 'Đang xử lý ảnh…' : anh ? 'Thay ảnh' : 'Chọn ảnh'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={dangXuLyAnh}
+                      onChange={(e) => {
+                        void chonAnh(e.target.files?.[0] ?? null)
+                        // Xóa lựa chọn để chọn lại đúng tệp đó vẫn kích hoạt được.
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {anh && (
+                    <button type="button" className="btn-admin-danger" onClick={() => void xoaAnh()}>
+                      Xóa ảnh
+                    </button>
+                  )}
+                </div>
+                <p className="anh-mon-goi-y">
+                  Chụp bằng điện thoại cũng được: ảnh tự cắt vuông và nén ngay trên máy trước khi gửi.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="field-block span-full">
@@ -355,6 +430,7 @@ export default function MenuEditor() {
           onClick={() => {
             setDraft(emptyDraft())
             setEditingId(null)
+            setAnh('')
           }}
         >
           + Thêm món mới
@@ -368,6 +444,7 @@ export default function MenuEditor() {
         <table className="admin-table">
           <thead>
             <tr>
+              <th className="th-anh">Ảnh</th>
               <th>Món đồ uống</th>
               <th>Tên tiếng Pháp</th>
               <th>Giá bán</th>
@@ -379,6 +456,13 @@ export default function MenuEditor() {
           <tbody>
             {items.map((i) => (
               <tr key={i.id} className={!i.active ? 'tr-inactive' : ''}>
+                <td className="td-anh">
+                  {i.image ? (
+                    <img className="anh-o-nho" src={i.image} alt={`Ảnh ${i.name}`} />
+                  ) : (
+                    <span className="anh-o-nho anh-mon-trong">—</span>
+                  )}
+                </td>
                 <td className="td-name">
                   <b>{i.name}</b>
                   {i.description && <small className="td-desc">{i.description}</small>}
@@ -407,6 +491,7 @@ export default function MenuEditor() {
                     onClick={() => {
                       setDraft(toDraft(i))
                       setEditingId(i.id)
+                      setAnh(i.image)
                     }}
                   >
                     Sửa
