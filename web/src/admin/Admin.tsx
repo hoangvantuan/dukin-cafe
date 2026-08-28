@@ -15,13 +15,31 @@ const TAB_CONFIG: Record<Tab, { label: string; icon: string }> = {
   settings: { label: 'Cấu hình', icon: '⚙️' },
 }
 
+/** Nhịp hỏi số đơn chờ, để huy hiệu trên tab Đơn hàng luôn đúng. */
+const PENDING_POLL_MS = 20_000
+
 export default function Admin() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [tab, setTab] = useState<Tab>('orders')
+  const [fresh, setFresh] = useState(0)
 
   useEffect(() => {
     api.session().then(() => setAuthed(true)).catch(() => setAuthed(false))
   }, [])
+
+  // Đếm đơn mới kể cả khi chủ quán đang đứng ở tab khác.
+  useEffect(() => {
+    if (!authed) return
+    const tick = (): void => {
+      void api
+        .pendingCount()
+        .then((r) => setFresh(r.fresh))
+        .catch(() => undefined)
+    }
+    tick()
+    const timer = window.setInterval(tick, PENDING_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [authed, tab])
 
   if (authed === null) {
     return (
@@ -73,6 +91,7 @@ export default function Admin() {
           >
             <span className="tab-icon">{TAB_CONFIG[t].icon}</span>
             <span className="tab-label">{TAB_CONFIG[t].label}</span>
+            {t === 'orders' && fresh > 0 && <span className="tab-badge">{fresh}</span>}
           </button>
         ))}
       </nav>

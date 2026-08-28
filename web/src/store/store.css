@@ -735,92 +735,6 @@ body {
   margin-top: 2px;
 }
 
-/* CHỌN KHUNG NHẬN HÀNG */
-.slot-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.slot-card {
-  background: var(--c-parchment-light);
-  border: 1px solid var(--c-card-border);
-  border-radius: 8px;
-  padding: 12px 16px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-  transition: all 0.2s ease;
-}
-.slot-card:hover {
-  border-color: var(--c-gold);
-}
-.slot-card.selected {
-  background: #fdf5e6;
-  border-color: var(--c-gold-dark);
-  box-shadow: 0 0 0 2px var(--c-gold-dark);
-}
-.slot-card-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.slot-icon {
-  font-size: 20px;
-}
-.slot-label {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--c-espresso);
-}
-.slot-rem {
-  font-size: 12px;
-  color: var(--c-gold-dark);
-  margin-top: 2px;
-}
-.slot-radio {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid var(--c-gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--c-espresso);
-}
-.slot-card.selected .slot-radio {
-  background: var(--c-gold);
-  color: #fff;
-}
-
-.bistro-form-error {
-  background: #fbebeb;
-  border: 1px solid #e8b0b0;
-  border-radius: 6px;
-  padding: 10px 14px;
-  color: #a82828;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.form-submit-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.form-submit-row .btn-gold {
-  flex: 1;
-  min-width: 200px;
-  padding: 12px 20px;
-  font-size: 15px;
-}
-
 /* ========================================================================= */
 /* BƯỚC 3: MÀN HÌNH BIÊN NHẬN HOÀN TẤT (RECEIPT VIEW)                         */
 /* ========================================================================= */
@@ -1022,3 +936,9 @@ body {
   margin: 8px 0 20px;
 }
 
+
+/* Quán tạm ngưng nhận đơn: đổi sắc thái dải thông báo cho rõ. */
+.schedule-banner.closed {
+  filter: grayscale(0.6);
+  opacity: 0.85;
+}

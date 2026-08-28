@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, fmtVnd, vnToday, type PlaceOrderBody } from '../api'
-import type { AdminOrder, MenuItem, OrderStatus, SlotOffer } from '../types'
+import type { AdminOrder, Intake, MenuItem, OrderStatus } from '../types'
 
 /** Bước chuyển tiếp chủ quán bấm được, khớp ALLOWED_TRANSITIONS phía máy chủ. */
 const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: string; btnClass: string }>> = {
@@ -31,29 +31,46 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; class: string }> = {
   cancelled: { label: 'Đã hủy', class: 'st-cancelled' },
 }
 
+/** Nhịp tự làm mới danh sách, để đơn mới về là thấy mà không cần tải lại trang. */
+const REFRESH_MS = 20_000
+
 function vnTime(iso: string): string {
   const t = new Date(new Date(iso).getTime() + 7 * 3600_000)
   return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`
 }
 
+function fmtDay(date: string): string {
+  const [y, m, d] = date.split('-')
+  return `${d}/${m}/${y}`
+}
+
 export default function Orders() {
+  const [scope, setScope] = useState<'pending' | 'date'>('pending')
   const [date, setDate] = useState(() => vnToday())
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [error, setError] = useState('')
   const [showManual, setShowManual] = useState(false)
+  const [lastSync, setLastSync] = useState('')
 
   const load = useCallback(async () => {
-    setError('')
     try {
-      const r = await api.orders(date)
+      const r = await api.orders(scope, date)
       setOrders(r.orders)
+      setLastSync(vnTime(new Date().toISOString()))
+      setError('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Không tải được danh sách đơn hàng')
     }
-  }, [date])
+  }, [scope, date])
 
   useEffect(() => {
     void load()
+  }, [load])
+
+  // Tự làm mới: đơn từ Trang bán về lúc nào chủ quán cũng thấy ngay.
+  useEffect(() => {
+    const timer = window.setInterval(() => void load(), REFRESH_MS)
+    return () => window.clearInterval(timer)
   }, [load])
 
   async function move(id: number, target: OrderStatus): Promise<void> {
@@ -67,28 +84,47 @@ export default function Orders() {
 
   const activeOrders = orders.filter((o) => o.status !== 'cancelled')
   const totalRevenue = activeOrders.reduce((s, o) => s + o.total, 0)
-  const morning = orders.filter((o) => o.slotPart === 'morning')
-  const afternoon = orders.filter((o) => o.slotPart === 'afternoon')
+  const freshCount = orders.filter((o) => o.status === 'new').length
+
+  // Chế độ cần xử lý gom theo ngày Khách đặt, để việc cũ nhất nằm trên cùng.
+  const byDay = new Map<string, AdminOrder[]>()
+  for (const o of orders) {
+    byDay.set(o.orderDate, [...(byDay.get(o.orderDate) ?? []), o])
+  }
 
   return (
     <div className="orders-container">
       {/* THANH CÔNG CỤ & KPI SUMMARY */}
       <div className="orders-top-control">
-        <div className="date-picker-wrap">
-          <label className="date-label">Ngày nhận:</label>
-          <input
-            type="date"
-            className="admin-input date-input"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+        <div className="scope-tabs">
           <button
-            className="btn-admin-light btn-today"
-            onClick={() => setDate(vnToday())}
+            className={`scope-tab ${scope === 'pending' ? 'active' : ''}`}
+            onClick={() => setScope('pending')}
           >
-            Hôm nay
+            Cần xử lý
+            {freshCount > 0 && scope === 'pending' && <span className="tab-badge">{freshCount}</span>}
+          </button>
+          <button
+            className={`scope-tab ${scope === 'date' ? 'active' : ''}`}
+            onClick={() => setScope('date')}
+          >
+            Theo ngày đặt
           </button>
         </div>
+
+        {scope === 'date' && (
+          <div className="date-picker-wrap">
+            <input
+              type="date"
+              className="admin-input date-input"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <button className="btn-admin-light btn-today" onClick={() => setDate(vnToday())}>
+              Hôm nay
+            </button>
+          </div>
+        )}
 
         <button
           className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
@@ -101,28 +137,28 @@ export default function Orders() {
       {/* KPI METRIC CARDS */}
       <div className="kpi-metrics-grid">
         <div className="kpi-card">
-          <span className="kpi-title">Tổng đơn hàng</span>
+          <span className="kpi-title">{scope === 'pending' ? 'Đơn cần xử lý' : 'Đơn trong ngày'}</span>
           <span className="kpi-value">{orders.length}</span>
-          <span className="kpi-hint">{activeOrders.length} đơn hợp lệ</span>
+          <span className="kpi-hint">{freshCount} đơn mới chưa xác nhận</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-title">Tổng doanh thu</span>
+          <span className="kpi-title">Tổng tiền</span>
           <span className="kpi-value gold">{fmtVnd(totalRevenue)}</span>
           <span className="kpi-hint">Đã trừ đơn hủy</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-title">Khung Sáng</span>
-          <span className="kpi-value">{morning.length} đơn</span>
+          <span className="kpi-title">Giao tận nơi</span>
+          <span className="kpi-value">{activeOrders.filter((o) => o.receiveMode === 'delivery').length} đơn</span>
           <span className="kpi-hint">
-            {fmtVnd(morning.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0))}
+            {activeOrders.filter((o) => o.receiveMode === 'pickup').length} đơn nhận tại quán
           </span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-title">Khung Chiều</span>
-          <span className="kpi-value">{afternoon.length} đơn</span>
-          <span className="kpi-hint">
-            {fmtVnd(afternoon.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0))}
+          <span className="kpi-title">Chờ thu tiền</span>
+          <span className="kpi-value">
+            {fmtVnd(activeOrders.filter((o) => o.status === 'new' || o.status === 'confirmed').reduce((s, o) => s + o.total, 0))}
           </span>
+          <span className="kpi-hint">Tự làm mới lúc {lastSync}</span>
         </div>
       </div>
 
@@ -138,14 +174,23 @@ export default function Orders() {
 
       {error && <div className="admin-error-alert">{error}</div>}
 
-      {/* DANH SÁCH ĐƠN HÀNG THEO KHUNG */}
-      {morning.length > 0 && <OrderSection title="Khung Sáng" icon="🌅" orders={morning} onMove={move} />}
-      {afternoon.length > 0 && <OrderSection title="Khung Chiều" icon="☕" orders={afternoon} onMove={move} />}
+      {/* DANH SÁCH ĐƠN HÀNG */}
+      {scope === 'pending'
+        ? [...byDay.entries()].map(([day, list]) => (
+            <OrderSection key={day} title={`Đặt ngày ${fmtDay(day)}`} icon="📅" orders={list} onMove={move} />
+          ))
+        : orders.length > 0 && (
+            <OrderSection title={`Đơn đặt ngày ${fmtDay(date)}`} icon="📅" orders={orders} onMove={move} />
+          )}
 
       {orders.length === 0 && (
         <div className="empty-orders-view">
           <span className="empty-icon">☕</span>
-          <h3>Chưa có đơn hàng nào trong ngày {date}</h3>
+          <h3>
+            {scope === 'pending'
+              ? 'Không còn đơn nào chờ xử lý'
+              : `Chưa có đơn nào đặt ngày ${fmtDay(date)}`}
+          </h3>
           <p>Khách có thể đặt qua trang bán hoặc bạn có thể bấm "Nhập hộ đơn (Zalo)".</p>
         </div>
       )}
@@ -182,7 +227,9 @@ function OrderSection({
         {orders.map((o) => (
           <article
             key={o.id}
-            className={`admin-order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''}`}
+            className={`admin-order-card ${o.status === 'cancelled' ? 'is-cancelled' : ''} ${
+              o.status === 'new' ? 'is-fresh' : ''
+            }`}
           >
             <div className="card-top">
               <div className="order-code-block">
@@ -192,16 +239,14 @@ function OrderSection({
                 ) : (
                   <span className="channel-badge web">Web</span>
                 )}
-                {!o.teamsThread && o.channel === 'web' && (
-                  <span className="teams-badge warn" title="Chưa liên kết Luồng Teams">
+                {!o.teamsThread && (
+                  <span className="teams-badge warn" title="Bot DUKIN chưa mở được Luồng Đơn hàng">
                     Chưa lên Teams
                   </span>
                 )}
               </div>
 
-              <span className={`status-pill ${STATUS_CONFIG[o.status].class}`}>
-                {o.statusLabel}
-              </span>
+              <span className={`status-pill ${STATUS_CONFIG[o.status].class}`}>{o.statusLabel}</span>
             </div>
 
             <div className="card-customer-info">
@@ -246,11 +291,7 @@ function OrderSection({
             {NEXT_ACTIONS[o.status].length > 0 && (
               <div className="card-actions-row">
                 {NEXT_ACTIONS[o.status].map((a) => (
-                  <button
-                    key={a.target}
-                    className={`btn-action ${a.btnClass}`}
-                    onClick={() => onMove(o.id, a.target)}
-                  >
+                  <button key={a.target} className={`btn-action ${a.btnClass}`} onClick={() => onMove(o.id, a.target)}>
                     {a.label}
                   </button>
                 ))}
@@ -265,11 +306,10 @@ function OrderSection({
 
 function ManualOrder({ onDone }: { onDone: () => void }) {
   const [menu, setMenu] = useState<MenuItem[]>([])
-  const [slots, setSlots] = useState<SlotOffer[]>([])
+  const [intake, setIntake] = useState<Intake>({ open: true, remaining: null })
   const [name, setName] = useState('')
   const [mode, setMode] = useState<'pickup' | 'delivery'>('pickup')
   const [location, setLocation] = useState('')
-  const [slotKey, setSlotKey] = useState('')
   const [payment, setPayment] = useState<'transfer' | 'cash'>('cash')
   const [note, setNote] = useState('')
   const [qtys, setQtys] = useState<Record<number, number>>({})
@@ -277,11 +317,10 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    Promise.all([api.adminMenu(), api.adminSlots()])
-      .then(([m, s]) => {
-        setMenu(m.items.filter((i) => i.active))
-        setSlots(s.slots)
-        if (s.slots[0]) setSlotKey(`${s.slots[0].date}|${s.slots[0].part}`)
+    Promise.all([api.adminMenu(), api.adminIntake()])
+      .then(([m, i]) => {
+        setMenu(m.items.filter((it) => it.active))
+        setIntake(i)
       })
       .catch((e: Error) => setError(e.message))
   }, [])
@@ -314,14 +353,11 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
       setError('Chọn ít nhất một món cho khách')
       return
     }
-    const [slotDate, slotPart] = slotKey.split('|')
     const body: PlaceOrderBody = {
       customerName: name.trim(),
       receiveMode: mode,
       location: mode === 'delivery' ? location.trim() : '',
       note: note.trim(),
-      slotDate,
-      slotPart,
       paymentMethod: payment,
       items: lines,
     }
@@ -340,7 +376,10 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
     <div className="manual-order-panel">
       <div className="panel-head">
         <h3>+ Nhập hộ đơn từ Zalo</h3>
-        <span className="panel-sub">Tạo đơn nhanh cho khách nhắn tin qua Zalo</span>
+        <span className="panel-sub">
+          Tạo đơn nhanh cho khách nhắn tin qua Zalo
+          {intake.remaining != null ? ` · hôm nay còn nhận ${intake.remaining} đơn` : ''}
+        </span>
       </div>
 
       <div className="manual-form-grid">
@@ -379,22 +418,6 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
         )}
 
         <div className="field-block">
-          <label>Khung nhận</label>
-          <select
-            className="admin-select"
-            value={slotKey}
-            onChange={(e) => setSlotKey(e.target.value)}
-          >
-            {slots.map((s) => (
-              <option key={`${s.date}|${s.part}`} value={`${s.date}|${s.part}`}>
-                {s.label}
-                {s.remaining != null ? ` (còn ${s.remaining})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field-block">
           <label>Thanh toán</label>
           <select
             className="admin-select"
@@ -412,7 +435,7 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
             className="admin-input"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Ít ngọt, nhiều đá..."
+            placeholder="Ít ngọt, nhiều đá, khách hẹn lấy đầu giờ chiều..."
           />
         </div>
       </div>
@@ -450,4 +473,3 @@ function ManualOrder({ onDone }: { onDone: () => void }) {
     </div>
   )
 }
-

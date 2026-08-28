@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, fmtVnd, type PlaceOrderBody } from '../api'
-import type { MenuItem, SlotOffer } from '../types'
+import type { Intake, MenuItem } from '../types'
 import './store.css'
 
 interface CartLine {
@@ -37,7 +37,7 @@ function optionNames(item: MenuItem, optionIds: number[]): string {
 
 export default function Store() {
   const [items, setItems] = useState<MenuItem[]>([])
-  const [slots, setSlots] = useState<SlotOffer[]>([])
+  const [intake, setIntake] = useState<Intake>({ open: true, remaining: null })
   const [zaloLink, setZaloLink] = useState('')
   const [loadError, setLoadError] = useState('')
   const [sel, setSel] = useState<Record<number, Selection>>({})
@@ -46,7 +46,6 @@ export default function Store() {
   const [name, setName] = useState(() => localStorage.getItem('dukin_name') ?? '')
   const [mode, setMode] = useState<'pickup' | 'delivery'>('pickup')
   const [location, setLocation] = useState(() => localStorage.getItem('dukin_location') ?? '')
-  const [slotKey, setSlotKey] = useState('')
   const [payment, setPayment] = useState<'transfer' | 'cash'>('transfer')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -55,10 +54,10 @@ export default function Store() {
   const [result, setResult] = useState<{ id: number; total: number; qrUrl: string | null } | null>(null)
 
   useEffect(() => {
-    Promise.all([api.menu(), api.slots(), api.publicConfig()])
-      .then(([m, s, c]) => {
+    Promise.all([api.menu(), api.intake(), api.publicConfig()])
+      .then(([m, i, c]) => {
         setItems(m.items)
-        setSlots(s.slots)
+        setIntake(i)
         setZaloLink(c.zaloLink)
         const init: Record<number, Selection> = {}
         for (const it of m.items) {
@@ -69,9 +68,6 @@ export default function Store() {
           init[it.id] = { optionIds: defaults, qty: 1 }
         }
         setSel(init)
-        if (s.slots.length > 0 && !slotKey) {
-          setSlotKey(`${s.slots[0].date}|${s.slots[0].part}`)
-        }
       })
       .catch((e: Error) => setLoadError(e.message))
   }, [])
@@ -139,18 +135,11 @@ export default function Store() {
       setFormError('Vui lòng nhập vị trí giao hàng (Tầng, Phòng làm việc).')
       return
     }
-    if (!slotKey) {
-      setFormError('Vui lòng chọn một khung nhận hàng phù hợp.')
-      return
-    }
-    const [slotDate, slotPart] = slotKey.split('|')
     const body: PlaceOrderBody = {
       customerName: name.trim(),
       receiveMode: mode,
       location: mode === 'delivery' ? location.trim() : '',
       note: note.trim(),
-      slotDate,
-      slotPart,
       paymentMethod: payment,
       items: cart.map((l) => ({ itemId: l.itemId, qty: l.qty, optionIds: l.optionIds })),
     }
@@ -159,6 +148,8 @@ export default function Store() {
       const r = await api.placeOrder(body)
       localStorage.setItem('dukin_name', name.trim())
       if (mode === 'delivery') localStorage.setItem('dukin_location', location.trim())
+      // Đơn vừa vào có thể là đơn cuối trong trần ngày, hỏi lại cho lần đặt sau.
+      void api.intake().then(setIntake).catch(() => undefined)
       setResult(r)
       setStep('done')
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -174,6 +165,7 @@ export default function Store() {
     setNote('')
     setResult(null)
     setStep('menu')
+    void api.intake().then(setIntake).catch(() => undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -258,7 +250,8 @@ export default function Store() {
 
           <div className="receipt-notice">
             <p>
-              Chủ quán sẽ cập nhật tiến độ đơn qua luồng thông báo trên Microsoft Teams của công ty.
+              Quán pha theo thứ tự đơn về và sẽ báo bạn khi xong, qua luồng thông báo trên Microsoft
+              Teams của công ty.
             </p>
             {zaloLink && (
               <p className="zalo-link-row">
@@ -394,38 +387,6 @@ export default function Store() {
               </div>
             )}
 
-            {/* Khung nhận hàng */}
-            <div className="form-group">
-              <label className="form-label">
-                Khung nhận hàng <span className="req">*</span>
-              </label>
-              <div className="slot-grid">
-                {slots.map((s) => {
-                  const key = `${s.date}|${s.part}`
-                  const isSelected = slotKey === key
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`slot-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSlotKey(key)}
-                    >
-                      <div className="slot-card-left">
-                        <span className="slot-icon">{s.part === 'morning' ? '🌅' : '☕'}</span>
-                        <div>
-                          <div className="slot-label">{s.label}</div>
-                          {s.remaining != null && (
-                            <div className="slot-rem">Còn {s.remaining} chỗ trống</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="slot-radio">{isSelected ? '✓' : ''}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
             {/* Phương thức thanh toán */}
             <div className="form-group">
               <label className="form-label">Cách thanh toán</label>
@@ -480,10 +441,14 @@ export default function Store() {
               <button
                 type="button"
                 className="bistro-btn btn-gold"
-                disabled={submitting || cart.length === 0}
+                disabled={submitting || cart.length === 0 || !intake.open}
                 onClick={() => void submit()}
               >
-                {submitting ? 'Đang xử lý...' : `Xác nhận đặt (${fmtVnd(cartTotal)})`}
+                {submitting
+                  ? 'Đang xử lý...'
+                  : intake.open
+                    ? `Xác nhận đặt (${fmtVnd(cartTotal)})`
+                    : 'Hôm nay quán đã đủ đơn'}
               </button>
             </div>
           </section>
@@ -509,11 +474,15 @@ export default function Store() {
             <p className="brand-quote">« Cà phê là nghệ thuật, DUKIN là chữ ký. »</p>
           </header>
 
-          {/* Thông báo giờ chốt đơn */}
-          <div className="schedule-banner">
-            <div className="schedule-badge">LỊCH ĐẶT TRƯỚC</div>
+          {/* Tình hình nhận đơn hôm nay */}
+          <div className={`schedule-banner ${intake.open ? '' : 'closed'}`}>
+            <div className="schedule-badge">{intake.open ? 'ĐANG NHẬN ĐƠN' : 'TẠM NGƯNG'}</div>
             <div className="schedule-text">
-              ✦ Đặt hôm trước có ngay sáng hôm sau • Sáng đặt chiều có hàng (chốt 10:00) ✦
+              {intake.open
+                ? `✦ Cứ đặt, quán pha xong sẽ báo bạn${
+                    intake.remaining != null ? ` • hôm nay còn nhận ${intake.remaining} đơn` : ''
+                  } ✦`
+                : '✦ Hôm nay quán đã nhận đủ đơn, hẹn bạn ngày mai ✦'}
             </div>
           </div>
 

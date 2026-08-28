@@ -17,3 +17,14 @@ export function fmtVnd(n: number): string {
 export function nowIso(): string {
   return new Date().toISOString()
 }
+
+/**
+ * Khóa định danh Khách: tên viết thường, gộp khoảng trắng, chuẩn hóa Unicode.
+ * Giữ nguyên dấu tiếng Việt vì "Hoàng" và "Hoang" là hai người khác nhau;
+ * chỉ bỏ khác biệt hoa thường và khoảng trắng thừa.
+ * Không dùng COLLATE NOCASE của SQLite: nó chỉ gộp hoa thường trong bảng ASCII,
+ * nên "Đức" và "đức" vẫn lọt thành hai dòng.
+ */
+export function nameKey(s: string): string {
+  return s.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase()
+}

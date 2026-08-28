@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { AdminSettings } from '../types'
+import type { AdminSettings, NotifyRecipient } from '../types'
 
 const BANKS: Array<{ code: string; name: string }> = [
   { code: 'ACB', name: 'ACB (Ngân hàng Á Châu)' },
@@ -118,16 +118,19 @@ export default function SettingsForm() {
       <section className="admin-editor-card">
         <div className="editor-head">
           <h3>2. Vận hành &amp; Giới hạn Đơn hàng</h3>
-          <span className="editor-sub">Quy định công suất tối đa cho mỗi khung giờ và liên kết Zalo hỗ trợ</span>
+          <span className="editor-sub">
+            Khách đặt lúc nào cũng được, quán tự liệu lúc nào pha và lúc nào giao. Đặt trần số đơn
+            mỗi ngày cho những hôm không kham nổi.
+          </span>
         </div>
 
         <div className="editor-form-grid">
           <div className="field-block">
-            <label>Giới hạn đơn mỗi khung (0 = không giới hạn)</label>
+            <label>Giới hạn đơn mỗi ngày (0 = không giới hạn)</label>
             <input
               className="admin-input"
-              value={s.slotCapacity}
-              onChange={(e) => set({ slotCapacity: e.target.value })}
+              value={s.dailyCapacity}
+              onChange={(e) => set({ dailyCapacity: e.target.value })}
               inputMode="numeric"
               placeholder="0"
             />
@@ -205,6 +208,15 @@ export default function SettingsForm() {
         </div>
       </section>
 
+      {/* AI ĐƯỢC BÁO KHI CÓ ĐƠN MỚI */}
+      <NotifySection
+        recipients={s.notifyRecipients}
+        notifyCustomer={s.notifyCustomerOnNew === '1'}
+        onChange={(recipients, notifyCustomer) =>
+          set({ notifyRecipients: recipients, notifyCustomerOnNew: notifyCustomer ? '1' : '0' })
+        }
+      />
+
       {error && <div className="admin-error-alert">{error}</div>}
       {okMsg && <div className="admin-success-alert">{okMsg}</div>}
 
@@ -217,3 +229,114 @@ export default function SettingsForm() {
   )
 }
 
+
+/**
+ * Ai được Bot DUKIN nhắc khi có đơn mới. Danh sách này tách khỏi Danh bạ Khách:
+ * đây là người phụ trách pha chế và giao hàng, không phải người đặt.
+ */
+function NotifySection({
+  recipients,
+  notifyCustomer,
+  onChange,
+}: {
+  recipients: string
+  notifyCustomer: boolean
+  onChange: (recipients: string, notifyCustomer: boolean) => void
+}) {
+  const list: NotifyRecipient[] = (() => {
+    try {
+      const parsed = JSON.parse(recipients || '[]') as unknown
+      return Array.isArray(parsed) ? (parsed as NotifyRecipient[]) : []
+    } catch {
+      return []
+    }
+  })()
+
+  const write = (next: NotifyRecipient[]): void => onChange(JSON.stringify(next), notifyCustomer)
+
+  return (
+    <section className="admin-editor-card">
+      <div className="editor-head">
+        <h3>4. Báo cho ai khi có đơn mới</h3>
+        <span className="editor-sub">
+          Bot DUKIN mở luồng đơn trên kênh Teams và gắn thẻ những người dưới đây. Mã người dùng lấy
+          trong hồ sơ Microsoft Teams, mục "Copy user ID".
+        </span>
+      </div>
+
+      <label className="notify-toggle-row">
+        <input
+          type="checkbox"
+          checked={notifyCustomer}
+          onChange={(e) => onChange(recipients, e.target.checked)}
+        />
+        <span>
+          <b>Nhắc luôn Khách đặt đơn</b>
+          <small>Chỉ nhắc được khi Khách đã liên kết mã Teams trong tab Danh bạ Khách</small>
+        </span>
+      </label>
+
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th style={{ width: '35%' }}>Tên hiển thị khi gắn thẻ</th>
+              <th>Mã người dùng Teams</th>
+              <th className="th-actions">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((r, i) => (
+              <tr key={i}>
+                <td>
+                  <input
+                    className="admin-input table-inline-input"
+                    value={r.name}
+                    placeholder="Ví dụ: Bếp DUKIN"
+                    onChange={(e) =>
+                      write(list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    className="admin-input table-inline-input"
+                    value={r.teamsId}
+                    placeholder="29:..."
+                    onChange={(e) =>
+                      write(list.map((x, j) => (j === i ? { ...x, teamsId: e.target.value } : x)))
+                    }
+                  />
+                </td>
+                <td className="td-actions">
+                  <button
+                    className="btn-table-delete"
+                    onClick={() => write(list.filter((_, j) => j !== i))}
+                  >
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {list.length === 0 && (
+              <tr>
+                <td colSpan={3} className="td-empty">
+                  Chưa có ai. Khi để trống, bot vẫn mở luồng đơn trên kênh nhưng không gắn thẻ ai.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="editor-actions">
+        <button
+          className="btn-admin-light"
+          onClick={() => write([...list, { name: '', teamsId: '' }])}
+        >
+          + Thêm người nhận
+        </button>
+      </div>
+    </section>
+  )
+}

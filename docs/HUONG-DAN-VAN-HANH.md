@@ -6,8 +6,8 @@ Tài liệu cho chủ quán tự cấu hình phần còn lại và vận hành l
 
 | Thứ gì | Địa chỉ |
 | --- | --- |
-| Trang bán (khách) | `https://dukin.hoangvantuan.com/dat-hang` (bản dự phòng nội bộ qua Tailscale: `http://100.123.116.92:8090/dat-hang`) |
-| Trang quản lý (chủ quán) | `https://dukin.hoangvantuan.com/quan-tri` |
+| Trang bán (khách) | `https://dukin.ontherunway.net/dat-hang` (bản dự phòng nội bộ qua Tailscale: `http://100.123.116.92:8090/dat-hang`) |
+| Trang quản lý (chủ quán) | `https://dukin.ontherunway.net/quan-tri` |
 | Mật khẩu quản trị | trong `~/projects/dukin-cafe/.env`, dòng `ADMIN_PASSWORD` |
 | Khóa bot Teams | trong `.env`, dòng `TEAMS_WEBHOOK_SECRET` |
 | Dữ liệu đơn | `~/projects/dukin-cafe/data/dukin.sqlite` |
@@ -26,12 +26,12 @@ cd ~/projects/dukin-cafe && docker compose up -d   # tạo lại container với
 
 ## 2. Cloudflare Tunnel (HTTPS công khai)
 
-Mục này đã làm xong với tên miền `dukin.hoangvantuan.com` (Cloudflare Tunnel trỏ về `http://localhost:8090`, đã kiểm chứng HTTPS hoạt động). Ghi lại để đối chiếu cấu hình:
+Mục này đã làm xong với tên miền `dukin.ontherunway.net` (Cloudflare Tunnel trỏ về `http://localhost:8090`, đã kiểm chứng HTTPS hoạt động). Ghi lại để đối chiếu cấu hình:
 
 1. **Networks → Tunnels → Create a tunnel**, loại Cloudflared, đặt tên `dukin`.
 2. Chạy lệnh cài connector mà trang hiện ra, ngay trên máy `pc` (chọn bản Docker hoặc gói hệ điều hành tùy cách bạn quản lý). Connector phải chạy thường trực.
-3. Ở tab **Public Hostname** của tunnel: thêm hostname `dukin.hoangvantuan.com`, Service đặt **HTTP → `localhost:8090`**. DNS record tự tạo.
-4. Kiểm tra: mở `https://dukin.hoangvantuan.com/dat-hang` thấy thực đơn là được.
+3. Ở tab **Public Hostname** của tunnel: thêm hostname `dukin.ontherunway.net`, Service đặt **HTTP → `localhost:8090`**. DNS record tự tạo.
+4. Kiểm tra: mở `https://dukin.ontherunway.net/dat-hang` thấy thực đơn là được.
 
 ## 3. Bot Teams (Bot DUKIN)
 
@@ -43,7 +43,7 @@ Mục này đã làm xong với tên miền `dukin.hoangvantuan.com` (Cloudflare
 4. Vào Azure Bot → **Configuration**: Messaging endpoint đặt:
 
    ```
-   https://dukin.hoangvantuan.com/api/teams/events?secret=<TEAMS_WEBHOOK_SECRET trong .env>
+   https://dukin.ontherunway.net/api/teams/events?secret=<TEAMS_WEBHOOK_SECRET trong .env>
    ```
 
    (đọc khóa: `ssh pc 'grep TEAMS_WEBHOOK_SECRET ~/projects/dukin-cafe/.env'`). Bấm Apply.
@@ -60,8 +60,8 @@ Trong Teams: mở nhóm bán cà phê → thanh ứng dụng → **... → Quả
 ### 3.4 Kiểm tra
 
 Đặt một đơn thử ở `/dat-hang`:
-- Kênh Teams có tin mới mở Luồng Đơn hàng (mã đơn, món, khách, khung nhận, tổng tiền).
-- Ở `/quan-tri` bấm "Xác nhận": tin trả lời xuất hiện trong đúng luồng, kèm nhắc tên khách nếu khách có trong Danh bạ.
+- Kênh Teams có thẻ đơn mới mở Luồng Đơn hàng (mã đơn, món, khách, giờ đặt, tổng tiền), gắn thẻ những người đã khai trong mục "Báo cho ai khi có đơn mới".
+- Ở `/quan-tri` bấm "Xác nhận": thẻ trả lời xuất hiện trong đúng luồng, kèm nhắc tên khách nếu khách có trong Danh bạ.
 - Nếu đơn trong Trang quản lý còn nhãn "chưa lên Teams": xem log `docker compose logs -f app` trong thư mục dự án, tìm dòng "Teams:".
 
 ## 4. Thông tin bán hàng
@@ -70,16 +70,17 @@ Thẻ **Cấu hình** trong `/quan-tri`:
 
 - **Thanh toán chuyển khoản**: chọn ngân hàng, nhập số tài khoản, tên chủ tài khoản. Khách chọn "Chuyển khoản" sẽ thấy mã QR VietQR sinh sẵn, nội dung chuyển khoản dạng `DUKIN #mãsố tênkhách` để đối chiếu.
 - **Link Zalo**: hiện ở trang hoàn tất để khách tự nhắn khi cần đổi đơn.
-- **Giới hạn đơn mỗi khung**: mặc định 30, khung đầy thì khách không chọn được khung đó. Đặt 0 nếu không giới hạn.
+- **Giới hạn đơn mỗi ngày**: mặc định 0 tức không giới hạn. Đặt một con số nếu muốn chặn những hôm quá tải; đủ trần thì Trang bán báo "hôm nay quán đã nhận đủ đơn" và khóa nút đặt.
+- **Báo cho ai khi có đơn mới**: danh sách người phụ trách được Bot DUKIN gắn thẻ trên kênh Teams mỗi khi có đơn (chủ quán, người pha chế, người giao). Kèm công tắc **Nhắc luôn Khách đặt đơn**, chỉ có tác dụng khi Khách đã được liên kết mã Teams trong thẻ Danh bạ.
 
-Thẻ **Danh bạ**: khách tự xuất hiện theo tên khi đặt. Muốn bot nhắc ai thì nhập mã Teams của người đó, dạng `8:orgid:<Object ID>`. Lấy Object ID: Azure Portal → Microsoft Entra ID → Users → chọn người → cột Object ID.
+Thẻ **Danh bạ**: khách tự xuất hiện theo tên khi đặt. Tên khách là duy nhất không phân biệt hoa thường, nên "Hoàng Tuấn" và "hoàng tuấn" là một người; sửa lại chính tả ở đây thì các đơn cũ của người đó cũng đổi tên theo. Dấu tiếng Việt vẫn phân biệt: "Hoàng" và "Hoang" là hai người. Muốn bot nhắc ai thì nhập mã Teams của người đó, dạng `8:orgid:<Object ID>`. Lấy Object ID: Azure Portal → Microsoft Entra ID → Users → chọn người → cột Object ID.
 
 ## 5. Vận hành thường ngày
 
-- **Thẻ Đơn hàng**: chọn ngày nhận, đơn chia theo Khung sáng và Khung chiều kèm tổng doanh thu. Bấm nút chuyển trạng thái theo luồng: Mới → Đã xác nhận → Đã thu tiền → Hoàn tất (hoặc Hủy). Mỗi lần bấm, bot trả lời vào Luồng Đơn hàng trên Teams.
+- **Thẻ Đơn hàng**: mở ra là tab **Cần xử lý**, liệt kê mọi đơn chưa Hoàn tất và chưa Hủy, gom theo ngày khách đặt. Danh sách tự làm mới mỗi 20 giây và huy hiệu đỏ trên tab đếm số đơn mới, nên không cần tải lại trang. Tab **Theo ngày đặt** dùng để đối sổ một ngày cụ thể. Bấm nút chuyển trạng thái theo luồng: Mới → Đã xác nhận → Đã thu tiền → Hoàn tất (hoặc Hủy). Mỗi lần bấm, bot trả lời vào Luồng Đơn hàng trên Teams.
 - **Nhập hộ (Zalo)**: nút "+ Nhập hộ (Zalo)" để tạo đơn thay khách nhắn Zalo, đơn gắn nhãn Zalo.
 - **Thẻ Thực đơn**: thêm, sửa, xóa món; mỗi món có nhóm tùy chọn (ví dụ Kích cỡ) với mức cộng giá từng lựa chọn; bỏ chọn "Còn bán" để ẩn món tạm thời.
-- Khung nhận hàng cố định theo bảng thuật ngữ: sáng 7:00 tới 10:30, chiều 13:30 tới 17:00, giờ chốt 10:00 (đặt sau 10:00 thì sớm nhất nhận sáng hôm sau).
+- Không còn khung giờ nhận hàng: khách đặt lúc nào cũng được, quán tự liệu lúc nào pha và lúc nào giao. Khách muốn hẹn giờ thì viết vào ô Ghi chú.
 
 ## 6. Cập nhật mã khi có chỉnh sửa
 
@@ -121,7 +122,8 @@ Máy `pc` có sẵn kopia: nên thêm đường dẫn `~/projects/dukin-cafe/dat
 | Không mở được trang | `ssh pc` rồi `docker ps` xem container `dukin-cafe-app-1` có chạy không; không thì `cd ~/projects/dukin-cafe && docker compose up -d` |
 | Đơn không lên Teams | Xem mục 3.4; kiểm tra App Secret còn hiệu lực (Azure, secrets có hạn dùng) |
 | Khám nhật ký | `cd ~/projects/dukin-cafe && docker compose logs -f --tail=100 app` |
-| Khách không chọn được khung | Khung đã đủ giới hạn, tăng trong thẻ Cấu hình |
+| Khách báo quán đã đủ đơn | Đã chạm giới hạn đơn mỗi ngày, tăng hoặc đặt 0 trong thẻ Cấu hình |
+| Bot không gắn thẻ đúng người | Kiểm tra mã Teams trong mục "Báo cho ai khi có đơn mới" và trong thẻ Danh bạ |
 | Mất mật khẩu quản trị | Sửa lại `ADMIN_PASSWORD` trong `.env` rồi `docker compose up -d` |
 
 ## Tổng quan luồng hệ thống

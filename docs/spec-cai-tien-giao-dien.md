@@ -1,5 +1,29 @@
 # Cải tiến giao diện Trang bán và Trang quản lý
 
+> **Cập nhật sau khi bỏ Khung nhận hàng** (xem `docs/adr/0003-bo-khung-nhan-hang.md`).
+> Bản spec này viết khi hệ thống còn Khung nhận hàng và Giờ chốt đơn. Hai khái niệm
+> đó đã bị gỡ: Khách đặt lúc nào cũng được, quán tự quyết lúc nào pha và lúc nào giao.
+> Những mục sau **không còn hiệu lực**:
+>
+> - Mọi mục về chọn Khung nhận hàng ở Trang bán: dải ngày chạy ngang, phạm vi ba
+>   ngày trong Cấu hình, khung sớm nhất chọn sẵn, hiển thị số chỗ còn lại của khung,
+>   lời giải thích khi qua Giờ chốt đơn (Vấn đề đoạn 3; Giải pháp đoạn 3 và 5; Câu
+>   chuyện 16 tới 19; Thiết kế mục Khung nhận hàng; Kế hoạch mục truyền số ngày đặt
+>   trước; Kiểm thử mục mô đun tính Khung nhận hàng).
+> - Giới hạn đơn theo khung, thay bằng Trần đơn mỗi ngày trong Cấu hình.
+>
+> Những mục sau **vẫn còn hiệu lực nhưng đổi cách gộp**:
+>
+> - Bảng pha chế (Câu chuyện 50 tới 53 và 72; Thiết kế và Kiểm thử mục Bảng pha chế):
+>   gộp theo hàng đợi xử lý hoặc theo ngày đặt, không còn gộp theo Khung nhận hàng.
+>
+> Phần còn lại của spec, gồm bộ token dùng chung, trang cuộn liền, thẻ Đặt lại đơn
+> lần trước, ảnh Món, bố cục điện thoại cho Trang quản lý, xác nhận trước khi Hủy đơn,
+> trang Quyền riêng tư và Điều khoản sử dụng, vẫn giữ nguyên giá trị.
+>
+> Ba việc trong spec đã làm xong ngoài kế hoạch này: Trang quản lý mặc định mở hàng
+> đợi xử lý, danh sách tự làm mới kèm huy hiệu đếm đơn mới, và thông báo Teams dạng thẻ.
+
 ## Problem Statement
 
 Khách mở Trang bán trên điện thoại và gặp một bảng thực đơn kiểu giấy da phủ kín hoa văn: viền vàng kép, cụm họa tiết ở cả đầu và cuối, một câu châm ngôn lặp lại ở cả ba bước đặt hàng. Phần trang trí ăn mất chiều cao mà nội dung thật đang cần, nên Khách phải cuộn nhiều hơn mức đáng phải cuộn cho một Thực đơn chỉ có bốn Món.

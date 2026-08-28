@@ -1,4 +1,4 @@
-import type { AdminOrder, AdminSettings, Customer, ItemPayload, MenuItem, OrderStatus, SlotOffer } from './types'
+import type { AdminOrder, AdminSettings, Customer, Intake, ItemPayload, MenuItem, OrderStatus } from './types'
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -16,15 +16,13 @@ export interface PlaceOrderBody {
   receiveMode: 'pickup' | 'delivery'
   location?: string
   note?: string
-  slotDate: string
-  slotPart: string
   paymentMethod: 'transfer' | 'cash'
   items: Array<{ itemId: number; qty: number; optionIds: number[] }>
 }
 
 export const api = {
   menu: () => req<{ items: MenuItem[] }>('/api/menu'),
-  slots: () => req<{ slots: SlotOffer[] }>('/api/slots'),
+  intake: () => req<Intake>('/api/intake'),
   publicConfig: () => req<{ zaloLink: string }>('/api/public-config'),
   placeOrder: (body: PlaceOrderBody) =>
     req<{ id: number; total: number; qrUrl: string | null }>('/api/orders', {
@@ -37,7 +35,11 @@ export const api = {
   logout: () => req<{ ok: true }>('/api/admin/logout', { method: 'POST' }),
   session: () => req<{ ok: true }>('/api/admin/session'),
 
-  orders: (date: string) => req<{ date: string; orders: AdminOrder[] }>(`/api/admin/orders?date=${date}`),
+  orders: (scope: 'pending' | 'date', date: string) =>
+    req<{ date: string; scope: string; orders: AdminOrder[] }>(
+      `/api/admin/orders?scope=${scope}&date=${date}`,
+    ),
+  pendingCount: () => req<{ pending: number; fresh: number }>('/api/admin/orders/pending-count'),
   patchOrder: (id: number, status: OrderStatus) =>
     req<AdminOrder>(`/api/admin/orders/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) }),
   createManualOrder: (body: PlaceOrderBody) =>
@@ -45,7 +47,7 @@ export const api = {
       ...POST,
       body: JSON.stringify(body),
     }),
-  adminSlots: () => req<{ slots: SlotOffer[] }>('/api/admin/slots'),
+  adminIntake: () => req<Intake>('/api/admin/intake'),
 
   adminMenu: () => req<{ items: MenuItem[] }>('/api/admin/menu'),
   saveItem: (item: ItemPayload, id?: number) =>

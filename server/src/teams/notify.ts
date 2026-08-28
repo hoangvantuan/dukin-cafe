@@ -1,32 +1,53 @@
-import { db, getRow, getSettings } from '../db.js'
-import { slotLabel } from '../domain/slots.js'
-import { fmtVnd } from '../util.js'
-import { loadOrder, loadOrderItems, orderCode, STATUS_LABEL, type OrderRow, type OrderItemRow } from '../orders.js'
+import { db, findCustomer, getSettings } from '../db.js'
+import { fmtVnd, nameKey } from '../util.js'
+import { loadOrder, loadOrderItems, orderCode, STATUS_LABEL } from '../orders.js'
 import { botConfigFromSettings, sendOrderReply, sendOrderRoot, type Mention } from './bot.js'
+import { orderCard, statusCard } from './card.js'
 
-function mentionFor(name: string): Mention[] {
-  // Dòng danh bạ luôn có cột teams_id.
-  const row = getRow<{ teams_id: string }>(db.prepare('SELECT teams_id FROM customers WHERE name = ?'), name)
-  return row && row.teams_id ? [{ teamsId: row.teams_id, name }] : []
+/**
+ * Người phụ trách được nhắc khi có đơn mới, lấy từ Cài đặt.
+ * Lưu dạng JSON để chủ quán sửa được qua Trang quản lý mà không cần đụng bảng.
+ */
+export function parseRecipients(raw: string): Mention[] {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw || '[]')
+  } catch {
+    return []
+  }
+  if (!Array.isArray(parsed)) return []
+  const out: Mention[] = []
+  for (const r of parsed) {
+    if (typeof r !== 'object' || r === null) continue
+    const o = r as Record<string, unknown>
+    const name = typeof o.name === 'string' ? o.name.trim() : ''
+    const teamsId = typeof o.teamsId === 'string' ? o.teamsId.trim() : ''
+    if (name && teamsId) out.push({ name, teamsId })
+  }
+  return out
 }
 
-/** Nội dung tin gốc mở Luồng Đơn hàng trên Teams. */
-export function orderRootText(o: OrderRow, items: OrderItemRow[]): string {
-  const lines = items.map(
-    (i) => `• ${i.name}${i.option_summary ? ` (${i.option_summary})` : ''} x${i.qty} • ${fmtVnd(i.unit_price * i.qty)}`,
-  )
-  const receive =
-    o.receive_mode === 'delivery' ? `🛵 Giao tận nơi: ${o.location}` : '🏠 Nhận tại quán'
-  const parts = [
-    `🆕 Đơn ${orderCode(o.id)} • ${fmtVnd(o.total)}`,
-    ...lines,
-    `👤 ${o.customer_name}${o.channel === 'zalo' ? ' (đơn Zalo nhập hộ)' : ''}`,
-    receive,
-    `🕓 ${slotLabel(o.slot_date, o.slot_part)}`,
-    `💳 ${o.payment_method === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt khi nhận'}`,
-  ]
-  if (o.note) parts.push(`📝 ${o.note}`)
-  return parts.join('\n')
+export function serializeRecipients(list: Mention[]): string {
+  return JSON.stringify(list.map((m) => ({ name: m.name, teamsId: m.teamsId })))
+}
+
+/** Gắn thẻ Khách nếu Khách đã liên kết Teams trong Danh bạ. */
+function customerMention(name: string): Mention[] {
+  const c = findCustomer(name)
+  return c && c.teams_id ? [{ teamsId: c.teams_id, name: c.name }] : []
+}
+
+/** Bỏ trùng theo mã Teams, giữ thứ tự: người phụ trách trước, Khách sau. */
+function dedupe(list: Mention[]): Mention[] {
+  const seen = new Set<string>()
+  const out: Mention[] = []
+  for (const m of list) {
+    const key = nameKey(m.teamsId)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(m)
+  }
+  return out
 }
 
 /**
@@ -34,13 +55,23 @@ export function orderRootText(o: OrderRow, items: OrderItemRow[]): string {
  * đơn đã lưu, chỉ ghi log để chủ quán biết bot chưa thông báo được.
  */
 export async function notifyNewOrder(orderId: number): Promise<void> {
-  const cfg = botConfigFromSettings(getSettings())
+  const settings = getSettings()
+  const cfg = botConfigFromSettings(settings)
   if (!cfg) return
   const order = loadOrder(orderId)
   if (!order) return
   const items = loadOrderItems(orderId)
+
+  const mentions = dedupe([
+    ...parseRecipients(settings.notifyRecipients),
+    ...(settings.notifyCustomerOnNew === '1' ? customerMention(order.customer_name) : []),
+  ])
+
   try {
-    const rootId = await sendOrderRoot(cfg, orderRootText(order, items), mentionFor(order.customer_name))
+    const rootId = await sendOrderRoot(cfg, {
+      card: orderCard(order, items, mentions),
+      summary: `Đơn mới ${orderCode(order.id)} · ${order.customer_name} · ${fmtVnd(order.total)}`,
+    })
     if (rootId) db.prepare('UPDATE orders SET teams_thread = ? WHERE id = ?').run(rootId, orderId)
   } catch (e) {
     console.error(`Teams: gửi tin gốc đơn ${orderCode(orderId)} thất bại:`, e)
@@ -52,9 +83,12 @@ export async function notifyStatusChanged(orderId: number): Promise<void> {
   const cfg = botConfigFromSettings(getSettings())
   const order = loadOrder(orderId)
   if (!cfg || !order || !order.teams_thread) return
-  const text = `${STATUS_LABEL[order.status]} đơn ${orderCode(order.id)}`
+  const mentions = customerMention(order.customer_name)
   try {
-    await sendOrderReply(cfg, order.teams_thread, text, mentionFor(order.customer_name))
+    await sendOrderReply(cfg, order.teams_thread, {
+      card: statusCard(order, mentions),
+      summary: `${STATUS_LABEL[order.status]} · Đơn ${orderCode(order.id)}`,
+    })
   } catch (e) {
     console.error(`Teams: trả lời đơn ${orderCode(orderId)} thất bại:`, e)
   }

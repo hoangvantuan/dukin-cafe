@@ -1043,3 +1043,98 @@ body {
   padding: 28px 16px !important;
 }
 
+
+/* ============ TAB PHẠM VI XEM ĐƠN & HUY HIỆU ĐƠN MỚI ============ */
+
+.scope-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+}
+
+.scope-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: #6b5c4a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.scope-tab:hover {
+  color: #2c2118;
+}
+
+.scope-tab.active {
+  background: #fff;
+  color: #2c2118;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Huy hiệu đếm đơn mới, dùng chung cho tab phạm vi và tab điều hướng. */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.admin-tab-btn .tab-badge {
+  margin-left: 6px;
+}
+
+/* Đơn chưa xác nhận nổi lên trong lưới, để mắt bắt được ngay. */
+.admin-order-card.is-fresh {
+  border-color: #c9a227;
+  box-shadow: 0 0 0 1px #c9a227 inset;
+}
+
+/* ============ MỤC BÁO CHO AI KHI CÓ ĐƠN MỚI ============ */
+
+.notify-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  background: rgba(201, 162, 39, 0.06);
+  cursor: pointer;
+}
+
+.notify-toggle-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #c9a227;
+  cursor: pointer;
+}
+
+.notify-toggle-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notify-toggle-row small {
+  color: #6b5c4a;
+  font-size: 13px;
+}

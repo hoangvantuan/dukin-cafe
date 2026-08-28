@@ -25,12 +25,9 @@ export interface MenuItem {
   groups: MenuGroup[]
 }
 
-export type SlotPart = 'morning' | 'afternoon'
-
-export interface SlotOffer {
-  date: string
-  part: SlotPart
-  label: string
+/** Tình hình nhận đơn hôm nay; remaining là null khi quán không đặt trần. */
+export interface Intake {
+  open: boolean
   remaining: number | null
 }
 
@@ -51,8 +48,7 @@ export interface AdminOrder {
   receiveMode: 'pickup' | 'delivery'
   location: string
   note: string
-  slotDate: string
-  slotPart: SlotPart
+  orderDate: string
   paymentMethod: 'transfer' | 'cash'
   status: OrderStatus
   statusLabel: string
@@ -73,12 +69,22 @@ export interface AdminSettings {
   accountNo: string
   accountName: string
   zaloLink: string
-  slotCapacity: string
+  dailyCapacity: string
   teamsTenantId: string
   teamsAppId: string
   teamsAppSecret: string
   teamsServiceUrl: string
   teamsConvId: string
+  /** Chuỗi JSON [{ name, teamsId }] người phụ trách được nhắc khi có đơn mới. */
+  notifyRecipients: string
+  /** '1' thì nhắc luôn Khách trong tin đơn mới nếu Khách đã liên kết Teams. */
+  notifyCustomerOnNew: string
+}
+
+/** Một người được Bot DUKIN nhắc trên Teams. */
+export interface NotifyRecipient {
+  name: string
+  teamsId: string
 }
 
 export interface ItemPayload {

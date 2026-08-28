@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify'
-import { allRows, db, getSettings, setSettings } from '../db.js'
+import { allRows, db, getRow, getSettings, setSettings, upsertCustomer, type CustomerRow } from '../db.js'
 import { COOKIE_NAME, isAdmin, passwordMatches, setSessionCookie } from '../auth.js'
 import { deleteItem, insertItemFull, menuTree, replaceItemFull, validateItemPayload } from '../menu.js'
 import {
   ALLOWED_TRANSITIONS,
-  availableSlots,
   createOrder,
+  intakeToday,
   loadOrder,
   loadOrderItems,
   orderCode,
@@ -16,8 +16,8 @@ import {
   type OrderRow,
   type OrderStatus,
 } from '../orders.js'
-import { notifyNewOrder, notifyStatusChanged } from '../teams/notify.js'
-import { vnNow } from '../domain/slots.js'
+import { notifyNewOrder, notifyStatusChanged, parseRecipients, serializeRecipients } from '../teams/notify.js'
+import { vnNow } from '../domain/day.js'
 
 async function orderPayload(o: OrderRow) {
   return {
@@ -28,8 +28,7 @@ async function orderPayload(o: OrderRow) {
     receiveMode: o.receive_mode,
     location: o.location,
     note: o.note,
-    slotDate: o.slot_date,
-    slotPart: o.slot_part,
+    orderDate: o.order_date,
     paymentMethod: o.payment_method,
     status: o.status,
     statusLabel: STATUS_LABEL[o.status],
@@ -74,14 +73,39 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     return { ok: true }
   })
 
-  app.get('/api/admin/orders', async (req, reply) => {
-    const query = req.query as { date?: string }
+  /**
+   * Hai cách xem đơn:
+   * - scope=pending (mặc định): mọi đơn chưa Hoàn tất và chưa Hủy, không phân
+   *   theo ngày. Đây là hàng đợi việc của quán.
+   * - scope=date: đơn đặt trong đúng một ngày, để đối sổ và xem doanh thu.
+   */
+  app.get('/api/admin/orders', async (req) => {
+    const query = req.query as { date?: string; scope?: string }
     const date = query.date && /^\d{4}-\d{2}-\d{2}$/.test(query.date) ? query.date : vnNow().date
-    const rows = allRows<OrderRow>(
-      db.prepare('SELECT * FROM orders WHERE slot_date = ? ORDER BY slot_part, id'),
-      date,
+    const scope = query.scope === 'date' ? 'date' : 'pending'
+    const rows =
+      scope === 'date'
+        ? allRows<OrderRow>(
+            db.prepare('SELECT * FROM orders WHERE order_date = ? ORDER BY id DESC'),
+            date,
+          )
+        : allRows<OrderRow>(
+            db.prepare(
+              "SELECT * FROM orders WHERE status NOT IN ('done','cancelled') ORDER BY id",
+            ),
+          )
+    return { date, scope, orders: await Promise.all(rows.map(orderPayload)) }
+  })
+
+  /** Số đơn còn phải xử lý, cho huy hiệu trên thanh điều hướng. */
+  app.get('/api/admin/orders/pending-count', async () => {
+    const row = getRow<{ c: number }>(
+      db.prepare("SELECT COUNT(*) AS c FROM orders WHERE status NOT IN ('done','cancelled')"),
     )
-    return { date, orders: await Promise.all(rows.map(orderPayload)) }
+    const fresh = getRow<{ c: number }>(
+      db.prepare("SELECT COUNT(*) AS c FROM orders WHERE status = 'new'"),
+    )
+    return { pending: row?.c ?? 0, fresh: fresh?.c ?? 0 }
   })
 
   /** Nhập hộ đơn từ kênh Zalo. */
@@ -93,7 +117,7 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     await notifyNewOrder(created.id)
     const qrUrl =
       checked.order.paymentMethod === 'transfer'
-        ? vietQrUrl(created.total, transferMemo(created.id, checked.order.customerName))
+        ? vietQrUrl(created.total, transferMemo(created.id, created.customerName))
         : null
     return reply.code(201).send({ id: created.id, total: created.total, qrUrl })
   })
@@ -149,12 +173,14 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
         accountNo: s.accountNo,
         accountName: s.accountName,
         zaloLink: s.zaloLink,
-        slotCapacity: s.slotCapacity,
+        dailyCapacity: s.dailyCapacity,
         teamsTenantId: s.teamsTenantId,
         teamsAppId: s.teamsAppId,
         teamsAppSecret: s.teamsAppSecret ? '•••' : '',
         teamsServiceUrl: s.teamsServiceUrl,
         teamsConvId: s.teamsConvId,
+        notifyRecipients: serializeRecipients(parseRecipients(s.notifyRecipients)),
+        notifyCustomerOnNew: s.notifyCustomerOnNew === '1' ? '1' : '0',
       },
     }
   })
@@ -168,18 +194,27 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
       if (k === 'teamsAppSecret' && v === '•••') continue
       if (typeof v === 'string') patch[k] = v
     }
-    if (patch.slotCapacity != null && !/^\d+$/.test(patch.slotCapacity)) {
-      return reply.code(400).send({ error: 'Giới hạn mỗi khung phải là số nguyên' })
+    if (patch.dailyCapacity != null && !/^\d+$/.test(patch.dailyCapacity)) {
+      return reply.code(400).send({ error: 'Giới hạn đơn mỗi ngày phải là số nguyên' })
+    }
+    if (patch.notifyRecipients != null) {
+      // Chuẩn hóa lại danh sách: bỏ dòng thiếu tên hoặc thiếu mã Teams.
+      const list = parseRecipients(patch.notifyRecipients)
+      if (list.length > 20) return reply.code(400).send({ error: 'Tối đa 20 người nhận thông báo' })
+      patch.notifyRecipients = serializeRecipients(list)
+    }
+    if (patch.notifyCustomerOnNew != null) {
+      patch.notifyCustomerOnNew = patch.notifyCustomerOnNew === '1' ? '1' : '0'
     }
     setSettings(patch)
     return { ok: true }
   })
 
-  // Danh bạ Khách: tên quen kèm mã người dùng Teams.
-  interface CustomerRow { id: number; name: string; teams_id: string }
+  // Danh bạ Khách: tên quen kèm mã người dùng Teams. Tên là duy nhất, không
+  // phân biệt hoa thường, nên cùng một người chỉ có đúng một dòng.
   app.get('/api/admin/customers', async () => ({
     customers: allRows<CustomerRow>(
-      db.prepare('SELECT * FROM customers ORDER BY name COLLATE NOCASE'),
+      db.prepare('SELECT id, name, teams_id, name_key FROM customers ORDER BY name_key'),
     ).map((c) => ({
       id: c.id,
       name: c.name,
@@ -192,7 +227,7 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     const name = typeof b.name === 'string' ? b.name.trim().slice(0, 100) : ''
     const teamsId = typeof b.teamsId === 'string' ? b.teamsId.trim().slice(0, 200) : ''
     if (!name) return reply.code(400).send({ error: 'Cần tên khách' })
-    db.prepare('INSERT INTO customers(name, teams_id) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET teams_id = excluded.teams_id').run(name, teamsId)
+    upsertCustomer(name, teamsId)
     return reply.code(201).send({ ok: true })
   })
 
@@ -203,6 +238,6 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     return { ok: true }
   })
 
-  // Khung giờ cho form nhập hộ.
-  app.get('/api/admin/slots', async () => ({ slots: availableSlots() }))
+  /** Tình hình nhận đơn hôm nay, cho form nhập hộ biết còn chỗ hay không. */
+  app.get('/api/admin/intake', async () => intakeToday())
 }

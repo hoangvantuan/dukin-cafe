@@ -60,20 +60,39 @@ export interface Mention {
   name: string
 }
 
-export async function sendActivity(
+export interface OutgoingMessage {
+  /** Nội dung chữ, dùng khi không gửi thẻ. */
+  text?: string
+  /** Adaptive Card; gắn thẻ người nằm trong msteams.entities của chính thẻ. */
+  card?: Record<string, unknown>
+  /** Dòng tóm tắt hiện ở danh sách hội thoại và thông báo đẩy. */
+  summary?: string
+  /** Chỉ áp cho tin chữ: thẻ tự mang danh sách gắn thẻ của nó. */
+  mentions?: Mention[]
+}
+
+export async function sendMessage(
   cfg: BotConfig,
   conversationId: string,
-  text: string,
-  mentions: Mention[] = [],
+  msg: OutgoingMessage,
 ): Promise<string | null> {
   const token = await getBotToken(cfg)
-  const activity: Record<string, unknown> = { type: 'message', text }
-  if (mentions.length > 0) {
-    activity.entities = mentions.map((m) => ({
-      type: 'mention',
-      mentioned: { id: m.teamsId, name: m.name },
-      text: `<at>${m.name}</at>`,
-    }))
+  const activity: Record<string, unknown> = { type: 'message' }
+  if (msg.summary) activity.summary = msg.summary
+  if (msg.card) {
+    activity.attachments = [
+      { contentType: 'application/vnd.microsoft.card.adaptive', content: msg.card },
+    ]
+  } else {
+    activity.text = msg.text ?? ''
+    const mentions = msg.mentions ?? []
+    if (mentions.length > 0) {
+      activity.entities = mentions.map((m) => ({
+        type: 'mention',
+        mentioned: { id: m.teamsId, name: m.name },
+        text: `<at>${m.name}</at>`,
+      }))
+    }
   }
   const res = await fetch(`${cfg.serviceUrl}v3/conversations/${conversationId}/activities`, {
     method: 'POST',
@@ -87,16 +106,15 @@ export async function sendActivity(
 }
 
 /** Mở Luồng Đơn hàng: tin gốc trong kênh, trả về mã tin nhắn gốc. */
-export async function sendOrderRoot(cfg: BotConfig, text: string, mentions: Mention[]): Promise<string | null> {
-  return sendActivity(cfg, cfg.convId, text, mentions)
+export async function sendOrderRoot(cfg: BotConfig, msg: OutgoingMessage): Promise<string | null> {
+  return sendMessage(cfg, cfg.convId, msg)
 }
 
 /** Trả lời vào đúng Luồng Đơn hàng khi đổi Trạng thái Đơn hàng. */
 export async function sendOrderReply(
   cfg: BotConfig,
   rootMessageId: string,
-  text: string,
-  mentions: Mention[],
+  msg: OutgoingMessage,
 ): Promise<void> {
-  await sendActivity(cfg, `${cfg.convId};messageid=${rootMessageId}`, text, mentions)
+  await sendMessage(cfg, `${cfg.convId};messageid=${rootMessageId}`, msg)
 }

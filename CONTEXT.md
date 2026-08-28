@@ -27,11 +27,11 @@ _Avoid_: topping, biến thể
 ### Đặt hàng
 
 **Đơn hàng**:
-Yêu cầu đặt trước của một Khách, gồm các Món kèm Tùy chọn, ghi chú và một Khung nhận hàng.
+Yêu cầu đặt trước của một Khách, gồm các Món kèm Tùy chọn, ghi chú và Cách nhận hàng. Đơn không hẹn giờ: quán tự quyết lúc nào pha và lúc nào giao.
 _Avoid_: hóa đơn, đơn mua, bill
 
 **Khách**:
-Đồng nghiệp đặt Đơn hàng trong phạm vi công ty, định danh bằng tên.
+Đồng nghiệp đặt Đơn hàng trong phạm vi công ty, định danh bằng tên. Tên là duy nhất không phân biệt hoa thường và khoảng trắng thừa, nhưng phân biệt dấu: "Hoàng Tuấn" và "hoàng tuấn" là một người, "Hoang Tuan" là người khác.
 _Avoid_: user, tài khoản, khách vãng lai
 
 **Kênh đặt hàng**:
@@ -42,29 +42,29 @@ _Avoid_: nguồn, funnel
 Việc chủ quán tạo Đơn hàng thay Khách từ kênh Zalo.
 _Avoid_: đơn chèn, đơn tay
 
-**Khung nhận hàng**:
-Khoảng thời gian trong ngày mà Khách hẹn nhận Đơn hàng.
-_Avoid_: giờ giao, slot
-
-**Giờ chốt đơn**:
-Mốc trong ngày mà sau đó Đơn hàng mới chỉ có thể hẹn Khung nhận hàng của hôm sau.
-_Avoid_: deadline, cut-off
+**Trần đơn mỗi ngày**:
+Số Đơn hàng tối đa quán nhận trong một ngày, do chủ quán đặt; chạm trần thì Trang bán ngưng nhận cho tới hôm sau. Đặt 0 là không giới hạn.
+_Avoid_: quota, capacity, sức chứa
 
 **Cách nhận hàng**:
 Lựa chọn của Khách khi đặt: Nhận tại quán hoặc Giao tận nơi.
 _Avoid_: phương thức giao, ship
 
 **Nhận tại quán**:
-Khách đến quán lấy Đơn hàng trong Khung nhận hàng.
+Khách đến quán lấy Đơn hàng khi quán báo đã pha xong.
 _Avoid_: pickup
 
 **Giao tận nơi**:
-Quán mang Đơn hàng đến vị trí của Khách trong công ty trong Khung nhận hàng, miễn phí.
+Quán mang Đơn hàng đến vị trí của Khách trong công ty, miễn phí, vào lúc quán thu xếp được.
 _Avoid_: delivery, ship
 
 **Vị trí giao**:
 Nơi Khách hẹn nhận Đơn hàng khi Giao tận nơi (tầng, phòng, số bàn).
 _Avoid_: địa chỉ
+
+**Hàng đợi xử lý**:
+Danh sách mọi Đơn hàng chưa Hoàn tất và chưa Hủy, không phân theo ngày; đây là màn hình mặc định của Trang quản lý.
+_Avoid_: pending list, inbox, backlog
 
 **Trạng thái Đơn hàng**:
 Một trong: Mới, Đã xác nhận, Đã thu tiền, Hoàn tất, Đã hủy; chỉ chủ quán thực hiện việc chuyển trạng thái.
@@ -75,12 +75,20 @@ Chuyển khoản theo mã QR khi đặt, hoặc tiền mặt khi nhận hàng.
 _Avoid_: thanh toán trực tuyến, cổng thanh toán
 
 **Danh bạ Khách**:
-Danh sách tên Khách quen kèm mã người dùng Microsoft Teams, chủ quán tự cấu hình tay để nhắc Khách trong Luồng Đơn hàng.
+Danh sách tên Khách quen kèm mã người dùng Microsoft Teams, chủ quán tự cấu hình tay để nhắc Khách trong Luồng Đơn hàng. Mỗi Khách đúng một dòng.
 _Avoid_: liên hệ, contact
 
+**Người phụ trách**:
+Người của quán được Bot DUKIN gắn thẻ khi có đơn mới (chủ quán, người pha chế, người giao), khai riêng trong Cấu hình, không nằm trong Danh bạ Khách.
+_Avoid_: admin, người nhận thông báo, staff
+
 **Luồng Đơn hàng**:
-Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng.
+Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng. Mỗi tin là một Thẻ đơn hàng.
 _Avoid_: thread, notification, alert
+
+**Thẻ đơn hàng**:
+Tin nhắn dạng thẻ (Adaptive Card) Bot DUKIN gửi lên Teams, gồm mã đơn, danh sách Món, tổng tiền, Cách nhận hàng, giờ đặt và phần gắn thẻ người liên quan.
+_Avoid_: message, notification, tin nhắn thường
 
 **Bot DUKIN**:
 Ứng dụng Microsoft Teams do quán vận hành, thay quán mở Luồng Đơn hàng, trả lời trạng thái và nhắc Khách.

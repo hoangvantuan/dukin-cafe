@@ -1,6 +1,6 @@
-import { allRows, db, getRow, getSettings, tx } from './db.js'
-import { computeSlots, vnNow, type SlotPart } from './domain/slots.js'
-import { asciiFold, nowIso } from './util.js'
+import { allRows, db, findCustomer, getRow, getSettings, tx, upsertCustomer } from './db.js'
+import { vnNow } from './domain/day.js'
+import { asciiFold, nameKey, nowIso } from './util.js'
 
 export type OrderStatus = 'new' | 'confirmed' | 'paid' | 'done' | 'cancelled'
 export type Channel = 'web' | 'zalo'
@@ -30,8 +30,8 @@ export interface OrderRow {
   receive_mode: 'pickup' | 'delivery'
   location: string
   note: string
-  slot_date: string
-  slot_part: SlotPart
+  customer_key: string
+  order_date: string
   payment_method: 'transfer' | 'cash'
   status: OrderStatus
   total: number
@@ -61,8 +61,6 @@ export interface IncomingOrder {
   receiveMode: 'pickup' | 'delivery'
   location: string
   note: string
-  slotDate: string
-  slotPart: SlotPart
   paymentMethod: 'transfer' | 'cash'
   items: IncomingLine[]
 }
@@ -71,30 +69,30 @@ export function orderCode(id: number): string {
   return `#${String(id).padStart(3, '0')}`
 }
 
-interface CountRow { slot_date: string; slot_part: string; c: number }
-
-/** Đếm đơn đã chiếm chỗ mỗi khung (trừ đơn hủy). */
-export function slotCounts(): Record<string, number> {
-  const rows = allRows<CountRow>(
-    db.prepare(
-      "SELECT slot_date, slot_part, COUNT(*) AS c FROM orders WHERE status != 'cancelled' GROUP BY slot_date, slot_part",
-    ),
-  )
-  return Object.fromEntries(rows.map((r) => [`${r.slot_date}|${r.slot_part}`, r.c]))
-}
-
-export function slotCapacity(): number | null {
-  const n = Number(getSettings().slotCapacity)
+/**
+ * Trần số đơn nhận trong ngày; null là không giới hạn.
+ * Thay cho giới hạn theo Khung nhận hàng cũ: quán chỉ cần chặn những hôm quá tải.
+ */
+export function dailyCapacity(): number | null {
+  const n = Number(getSettings().dailyCapacity)
   return Number.isInteger(n) && n > 0 ? n : null
 }
 
-export function availableSlots() {
-  const { date, minutes } = vnNow()
-  return computeSlots({ todayDate: date, nowMinutes: minutes, capacity: slotCapacity(), counts: slotCounts() })
+/** Số đơn đã nhận trong một ngày, không kể đơn đã hủy. */
+export function ordersOnDate(date: string): number {
+  const row = getRow<{ c: number }>(
+    db.prepare("SELECT COUNT(*) AS c FROM orders WHERE order_date = ? AND status != 'cancelled'"),
+    date,
+  )
+  return row?.c ?? 0
 }
 
-export function isSlotOpen(slotDate: string, part: SlotPart): boolean {
-  return availableSlots().some((s) => s.date === slotDate && s.part === part)
+/** Hôm nay quán còn nhận đơn nữa không, kèm số chỗ còn lại nếu có đặt trần. */
+export function intakeToday(): { open: boolean; remaining: number | null } {
+  const cap = dailyCapacity()
+  if (cap == null) return { open: true, remaining: null }
+  const remaining = cap - ordersOnDate(vnNow().date)
+  return { open: remaining > 0, remaining: Math.max(0, remaining) }
 }
 
 interface SnapshotGroup {
@@ -208,7 +206,8 @@ export function resolveLines(
 export function validateIncoming(body: unknown): { ok: true; order: IncomingOrder } | { ok: false; error: string } {
   if (typeof body !== 'object' || body === null) return { ok: false, error: 'Đơn không hợp lệ' }
   const b = body as Record<string, unknown>
-  const customerName = typeof b.customerName === 'string' ? b.customerName.trim() : ''
+  const customerName =
+    typeof b.customerName === 'string' ? b.customerName.trim().replace(/\s+/g, ' ') : ''
   if (customerName.length < 1 || customerName.length > 100) return { ok: false, error: 'Tên khách từ 1 tới 100 ký tự' }
   const receiveMode = b.receiveMode === 'delivery' ? 'delivery' : b.receiveMode === 'pickup' ? 'pickup' : null
   if (!receiveMode) return { ok: false, error: 'Cách nhận hàng không hợp lệ' }
@@ -217,30 +216,28 @@ export function validateIncoming(body: unknown): { ok: true; order: IncomingOrde
     return { ok: false, error: 'Cần Vị trí giao khi chọn giao tận nơi' }
   }
   const note = typeof b.note === 'string' ? b.note.trim().slice(0, 500) : ''
-  const slotDate = typeof b.slotDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.slotDate) ? b.slotDate : null
-  if (!slotDate) return { ok: false, error: 'Ngày nhận không hợp lệ' }
-  const slotPart: SlotPart | null = b.slotPart === 'morning' ? 'morning' : b.slotPart === 'afternoon' ? 'afternoon' : null
-  if (!slotPart) return { ok: false, error: 'Khung nhận không hợp lệ' }
   const paymentMethod = b.paymentMethod === 'transfer' ? 'transfer' : b.paymentMethod === 'cash' ? 'cash' : null
   if (!paymentMethod) return { ok: false, error: 'Cách thanh toán không hợp lệ' }
   return {
     ok: true,
-    order: { customerName, receiveMode, location, note, slotDate, slotPart, paymentMethod, items: [] },
+    order: { customerName, receiveMode, location, note, paymentMethod, items: [] },
   }
 }
 
 export function createOrder(
   order: Omit<IncomingOrder, 'items'> & { items: unknown },
   channel: Channel,
-): { ok: true; id: number; total: number; lines: ResolvedLine[] } | { ok: false; error: string } {
+):
+  | { ok: true; id: number; total: number; customerName: string; lines: ResolvedLine[] }
+  | { ok: false; error: string } {
   const resolved = resolveLines(order.items)
   if (!resolved.ok) return resolved
-  if (!isSlotOpen(order.slotDate, order.slotPart)) {
-    return { ok: false, error: 'Khung nhận hàng đã kín hoặc không còn nhận, chọn khung khác' }
-  }
+  const orderDate = vnNow().date
+  const cap = dailyCapacity()
+  const ts = nowIso()
 
   const insertOrder = db.prepare(`
-    INSERT INTO orders(customer_name, channel, receive_mode, location, note, slot_date, slot_part,
+    INSERT INTO orders(customer_name, customer_key, channel, receive_mode, location, note, order_date,
       payment_method, status, total, created_at, updated_at)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)
   `)
@@ -248,21 +245,38 @@ export function createOrder(
     INSERT INTO order_items(order_id, item_id, name, option_summary, unit_price, qty)
     VALUES(?, ?, ?, ?, ?, ?)
   `)
-  const touchCustomer = db.prepare('INSERT OR IGNORE INTO customers(name) VALUES(?)')
-  const ts = nowIso()
-  const id = tx(() => {
+
+  // Đếm trần nằm trong giao dịch cùng lệnh ghi: hai Khách bấm đặt cùng lúc thì
+  // đơn thứ hai thấy đúng số đã ghi, không vượt trần.
+  const created = tx(() => {
+    if (cap != null && ordersOnDate(orderDate) >= cap) return null
+
+    // Khách đã có trong Danh bạ thì đơn dùng đúng tên hiển thị đã lưu, để cùng một
+    // người không tách thành nhiều tên chỉ vì gõ khác hoa thường.
+    const known = findCustomer(order.customerName)
+    const customerName = known ? known.name : order.customerName
+
     const res = insertOrder.run(
-      order.customerName, channel, order.receiveMode, order.location, order.note,
-      order.slotDate, order.slotPart, order.paymentMethod, resolved.total, ts, ts,
+      customerName, nameKey(customerName), channel, order.receiveMode, order.location, order.note,
+      orderDate, order.paymentMethod, resolved.total, ts, ts,
     )
     const orderId = Number(res.lastInsertRowid)
     for (const l of resolved.lines) {
       insertLine.run(orderId, l.itemId, l.name, l.optionSummary, l.unitPrice, l.qty)
     }
-    touchCustomer.run(order.customerName)
-    return orderId
+    // Ghi tên vào Danh bạ nhưng giữ nguyên mã Teams đã liên kết trước đó.
+    upsertCustomer(customerName, '', true)
+    return { orderId, customerName }
   })
-  return { ok: true, id, total: resolved.total, lines: resolved.lines }
+
+  if (!created) return { ok: false, error: 'Hôm nay quán đã nhận đủ đơn, hẹn bạn ngày mai nhé' }
+  return {
+    ok: true,
+    id: created.orderId,
+    total: resolved.total,
+    customerName: created.customerName,
+    lines: resolved.lines,
+  }
 }
 
 export function loadOrder(id: number): OrderRow | null {
