@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { getSettings } from '../db.js'
+import { parseBrewers } from '../domain/brewers.js'
 import { menuTree } from '../menu.js'
 import { createOrder, intakeToday, transferMemo, validateIncoming, vietQrUrl } from '../orders.js'
 import { notifyNewOrder } from '../teams/notify.js'
@@ -13,7 +14,11 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
   /** Cấu hình Trang bán và hai trang pháp lý đọc được mà không cần đăng nhập. */
   app.get('/api/public-config', async () => {
     const s = getSettings()
-    return { zaloLink: s.zaloLink, contactEmail: s.contactEmail }
+    return {
+      zaloLink: s.zaloLink,
+      contactEmail: s.contactEmail,
+      brewers: parseBrewers(s.brewers),
+    }
   })
 
   app.post('/api/orders', async (req, reply) => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../api'
 import type { LegalDoc, Lang } from './content'
 import '../store/store.css'
 import './legal.css'
@@ -8,12 +9,6 @@ import './legal.css'
 interface ContactChannel {
   contactEmail: string
   zaloLink: string
-}
-
-async function loadContact(): Promise<ContactChannel> {
-  const res = await fetch('/api/public-config')
-  if (!res.ok) throw new Error(`Lỗi ${res.status}`)
-  return (await res.json()) as ContactChannel
 }
 
 /**
@@ -28,8 +23,9 @@ export default function LegalPage({ doc }: { doc: LegalDoc }) {
   // Cấu hình có thể chưa khai kênh liên hệ; lỗi mạng cũng không được làm trắng
   // trang, nên nuốt lỗi và trang tự rơi về câu nhắn trực tiếp cho chủ quán.
   useEffect(() => {
-    loadContact()
-      .then(setContact)
+    api
+      .publicConfig()
+      .then((c) => setContact({ contactEmail: c.contactEmail, zaloLink: c.zaloLink }))
       .catch(() => undefined)
   }, [])
 

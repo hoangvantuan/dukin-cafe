@@ -11,6 +11,14 @@ async function req<T>(url: string, init?: RequestInit): Promise<T> {
 
 const POST = { method: 'POST', headers: { 'content-type': 'application/json' } } as const
 
+/** Cấu hình Trang bán và hai trang pháp lý đọc được mà không cần đăng nhập. */
+export interface PublicConfig {
+  zaloLink: string
+  contactEmail: string
+  /** Tên Người pha chủ quán đã khai; rỗng thì Trang bán ẩn hẳn mục Người pha. */
+  brewers: string[]
+}
+
 export interface PlaceOrderBody {
   customerName: string
   receiveMode: 'pickup' | 'delivery'
@@ -23,7 +31,7 @@ export interface PlaceOrderBody {
 export const api = {
   menu: () => req<{ items: MenuItem[] }>('/api/menu'),
   intake: () => req<Intake>('/api/intake'),
-  publicConfig: () => req<{ zaloLink: string }>('/api/public-config'),
+  publicConfig: () => req<PublicConfig>('/api/public-config'),
   placeOrder: (body: PlaceOrderBody) =>
     req<{ id: number; total: number; qrUrl: string | null }>('/api/orders', {
       ...POST,

@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import type { Intake } from '../types'
 import { MenuBrandHeader } from './BrandHeader'
 
 interface StorePageProps {
   intake: Intake
+  /** Tên Người pha lấy từ Cấu hình; rỗng thì cuối trang không có mục đó. */
+  brewers: string[]
   children: ReactNode
 }
 
@@ -11,7 +14,7 @@ interface StorePageProps {
  * Khung giấy da của Trang bán: hoa văn, đầu trang thương hiệu, tình hình nhận đơn
  * hôm nay và chân trang. Mọi phần đặt hàng nằm gọn bên trong, cùng một trang cuộn.
  */
-export default function StorePage({ intake, children }: StorePageProps) {
+export default function StorePage({ intake, brewers, children }: StorePageProps) {
   return (
     <div className="bistro-board">
       {/* Họa tiết trang trí góc cổ điển */}
@@ -40,6 +43,22 @@ export default function StorePage({ intake, children }: StorePageProps) {
         <div className="footer-sub">
           Phục vụ nội bộ đồng nghiệp · Chăm chút từng giọt cà phê phin thủ công
         </div>
+
+        {/* Chưa ai đồng ý công khai tên thì mục này không hiện, không để chỗ trống. */}
+        {brewers.length > 0 && (
+          <div className="footer-brewers">
+            <div className="footer-brewers-label">Người pha</div>
+            <div className="footer-brewers-names">{brewers.join(' · ')}</div>
+          </div>
+        )}
+
+        <nav className="footer-legal">
+          <Link to="/quyen-rieng-tu">Quyền riêng tư</Link>
+          <span className="footer-legal-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link to="/dieu-khoan-su-dung">Điều khoản sử dụng</Link>
+        </nav>
       </footer>
 
       <div className="gold-ornament bottom-ornament">✦ ❦ ✦</div>

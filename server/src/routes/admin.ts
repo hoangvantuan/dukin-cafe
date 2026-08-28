@@ -32,6 +32,7 @@ import {
 import { notifyNewOrder, notifyOrderEdited, notifyStatusChanged, parseRecipients, serializeRecipients } from '../teams/notify.js'
 import { diffOrder } from '../domain/orderDiff.js'
 import { botConfigFromSettings, listTeamMembers } from '../teams/bot.js'
+import { MAX_BREWERS, parseBrewers, serializeBrewers } from '../domain/brewers.js'
 import { vnNow } from '../domain/day.js'
 import { isPeriod, summarize, type StatLine, type StatOrder } from '../domain/stats.js'
 import { brewSheet, type BrewLine } from '../domain/brewSheet.js'
@@ -242,6 +243,7 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
         accountNo: s.accountNo,
         accountName: s.accountName,
         zaloLink: s.zaloLink,
+        contactEmail: s.contactEmail,
         dailyCapacity: s.dailyCapacity,
         teamsTenantId: s.teamsTenantId,
         teamsAppId: s.teamsAppId,
@@ -250,6 +252,7 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
         teamsConvId: s.teamsConvId,
         notifyRecipients: serializeRecipients(parseRecipients(s.notifyRecipients)),
         notifyCustomerOnNew: s.notifyCustomerOnNew === '1' ? '1' : '0',
+        brewers: serializeBrewers(parseBrewers(s.brewers)),
       },
     }
   })
@@ -274,6 +277,14 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     }
     if (patch.notifyCustomerOnNew != null) {
       patch.notifyCustomerOnNew = patch.notifyCustomerOnNew === '1' ? '1' : '0'
+    }
+    if (patch.brewers != null) {
+      // Chuẩn hóa lại danh sách Người pha: bỏ tên rỗng, bỏ tên trùng.
+      const list = parseBrewers(patch.brewers)
+      if (list.length > MAX_BREWERS) {
+        return reply.code(400).send({ error: `Tối đa ${MAX_BREWERS} Người pha` })
+      }
+      patch.brewers = serializeBrewers(list)
     }
     setSettings(patch)
     return { ok: true }

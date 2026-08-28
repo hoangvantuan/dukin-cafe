@@ -550,6 +550,52 @@ body {
   margin-top: var(--dk-space-1);
 }
 
+/* NGƯỜI PHA: một dòng tên dưới nhãn nhỏ, không ảnh, không chức danh. */
+.footer-brewers {
+  margin-top: var(--dk-space-3-5);
+}
+.footer-brewers-label {
+  font-family: var(--dk-font-brand);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--dk-gold-600);
+}
+.footer-brewers-names {
+  font-family: var(--dk-font-display);
+  font-size: 14px;
+  color: var(--dk-brown-500);
+  margin-top: var(--dk-space-0-5);
+  line-height: 1.6;
+}
+
+/* ĐƯỜNG TỚI HAI TRANG PHÁP LÝ */
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dk-space-2);
+  margin-top: var(--dk-space-3-5);
+}
+.footer-legal a {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dk-gold-600);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(197, 158, 88, 0.5);
+  padding-bottom: 1px;
+}
+.footer-legal a:hover {
+  color: var(--dk-brown-700);
+  border-bottom-color: var(--dk-gold-400);
+}
+.footer-legal-sep {
+  color: var(--dk-gold-400);
+  font-size: 12px;
+}
+
 /* ========================================================================= */
 /* PHẦN ĐẶT HÀNG NGAY TRÊN TRANG (KHAY MÓN + THÔNG TIN NHẬN HÀNG)            */
 /* ========================================================================= */

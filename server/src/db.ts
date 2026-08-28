@@ -28,6 +28,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   notifyRecipients: '[]',
   /** '1' thì nhắc luôn Khách trong tin đơn mới, nếu Khách có trong Danh bạ. */
   notifyCustomerOnNew: '1',
+  /**
+   * Người pha giới thiệu ở cuối Trang bán, chuỗi JSON các tên, ví dụ ["Tên A"].
+   * Mặc định rỗng: chưa nhập thì mục đó ẩn hoàn toàn khỏi Trang bán.
+   */
+  brewers: '[]',
 }
 
 fs.mkdirSync(config.dataDir, { recursive: true })

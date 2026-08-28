@@ -34,6 +34,7 @@ export default function Store() {
   const [items, setItems] = useState<MenuItem[]>([])
   const [intake, setIntake] = useState<Intake>({ open: true, remaining: null })
   const [zaloLink, setZaloLink] = useState('')
+  const [brewers, setBrewers] = useState<string[]>([])
   const [loadError, setLoadError] = useState('')
   const [sel, setSel] = useState<Record<number, Selection>>({})
   const [cart, setCart] = useState<CartLine[]>([])
@@ -54,6 +55,7 @@ export default function Store() {
         setItems(m.items)
         setIntake(i)
         setZaloLink(c.zaloLink)
+        setBrewers(c.brewers)
         const init: Record<number, Selection> = {}
         for (const it of m.items) {
           const defaults = it.groups
@@ -206,7 +208,7 @@ export default function Store() {
     <div className="dukin-viewport">
       {toastMessage && <Toast message={toastMessage} />}
 
-      <StorePage intake={intake}>
+      <StorePage intake={intake} brewers={brewers}>
         <MenuList
           items={items}
           sel={sel}

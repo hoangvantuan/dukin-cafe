@@ -81,6 +81,8 @@ export interface AdminSettings {
   accountNo: string
   accountName: string
   zaloLink: string
+  /** Email liên hệ in trên hai trang pháp lý; rỗng thì hai trang dùng đường Zalo. */
+  contactEmail: string
   dailyCapacity: string
   teamsTenantId: string
   teamsAppId: string
@@ -91,6 +93,8 @@ export interface AdminSettings {
   notifyRecipients: string
   /** '1' thì nhắc luôn Khách trong tin đơn mới nếu Khách đã liên kết Teams. */
   notifyCustomerOnNew: string
+  /** Chuỗi JSON các tên Người pha giới thiệu ở cuối Trang bán; rỗng thì ẩn mục đó. */
+  brewers: string
 }
 
 /** Một người được Bot DUKIN nhắc trên Teams. */

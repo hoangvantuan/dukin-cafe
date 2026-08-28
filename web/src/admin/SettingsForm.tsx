@@ -146,6 +146,17 @@ export default function SettingsForm() {
               placeholder="https://zalo.me/..."
             />
           </div>
+
+          <div className="field-block">
+            <label>Email liên hệ in trên hai trang pháp lý (để trống thì dùng Zalo)</label>
+            <input
+              className="admin-input"
+              type="email"
+              value={s.contactEmail}
+              onChange={(e) => set({ contactEmail: e.target.value })}
+              placeholder="quan@vidu.com"
+            />
+          </div>
         </div>
       </section>
 
@@ -217,6 +228,9 @@ export default function SettingsForm() {
           set({ notifyRecipients: recipients, notifyCustomerOnNew: notifyCustomer ? '1' : '0' })
         }
       />
+
+      {/* NGƯỜI PHA GIỚI THIỆU Ở CUỐI TRANG BÁN */}
+      <BrewersSection brewers={s.brewers} onChange={(brewers) => set({ brewers })} />
 
       {error && <div className="admin-error-alert">{error}</div>}
       {okMsg && <div className="admin-success-alert">{okMsg}</div>}
@@ -327,6 +341,97 @@ function NotifySection({
           </button>
         </div>
       )}
+    </section>
+  )
+}
+
+/**
+ * Người pha giới thiệu ở cuối Trang bán: chỉ tên, không ảnh, không chức danh.
+ * Danh sách này khác danh sách báo đơn mới: đây là tên hiện ra cho Khách đọc,
+ * nên để rỗng cho tới khi chủ quán đã hỏi và mọi người đồng ý.
+ */
+function BrewersSection({
+  brewers,
+  onChange,
+}: {
+  brewers: string
+  onChange: (brewers: string) => void
+}) {
+  const [draft, setDraft] = useState('')
+
+  const list: string[] = (() => {
+    try {
+      const parsed = JSON.parse(brewers || '[]') as unknown
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+    } catch {
+      return []
+    }
+  })()
+
+  function add(): void {
+    const name = draft.trim().replace(/\s+/g, ' ')
+    if (!name) return
+    // Cùng tên bất kể hoa thường thì không thêm dòng thứ hai.
+    const has = list.some((x) => x.toLowerCase() === name.toLowerCase())
+    if (!has) onChange(JSON.stringify([...list, name]))
+    setDraft('')
+  }
+
+  return (
+    <section className="admin-editor-card">
+      <div className="editor-head">
+        <h3>5. Người pha giới thiệu ở cuối Trang bán</h3>
+        <span className="editor-sub">
+          Cuối Trang bán hiện một dòng tên để Khách biết ai pha cà phê cho mình. Để trống thì mục
+          đó ẩn hoàn toàn, nên chỉ thêm tên khi người đó đã đồng ý được nêu tên.
+        </span>
+      </div>
+
+      <div className="picked-chips">
+        {list.map((name) => (
+          <span key={name} className="person-chip">
+            <span className="chip-who">
+              <b>{name}</b>
+            </span>
+            <button
+              className="chip-remove"
+              title="Bỏ tên này"
+              onClick={() => onChange(JSON.stringify(list.filter((x) => x !== name)))}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {list.length === 0 && (
+          <p className="muted picker-hint">
+            Chưa có tên nào. Cuối Trang bán không hiện mục Người pha.
+          </p>
+        )}
+      </div>
+
+      <div className="editor-form-grid">
+        <div className="field-block">
+          <label>Thêm tên Người pha</label>
+          <input
+            className="admin-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                add()
+              }
+            }}
+            placeholder="Nhập tên rồi bấm Thêm"
+          />
+        </div>
+      </div>
+
+      <div className="editor-actions">
+        <button className="btn-admin-light" disabled={!draft.trim()} onClick={add}>
+          + Thêm tên
+        </button>
+      </div>
     </section>
   )
 }
