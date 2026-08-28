@@ -152,3 +152,16 @@ export interface Stats {
   topItems: Array<{ name: string; optionSummary: string; qty: number; revenue: number }>
   topCustomers: Array<{ name: string; orders: number; revenue: number }>
 }
+
+/** Một cặp Món và Tùy chọn đã gộp trong Bảng pha chế. */
+export interface BrewRow {
+  name: string
+  optionSummary: string
+  qty: number
+}
+
+/** Bảng pha chế do máy chủ gộp sẵn; giao diện chỉ hiển thị, không cộng lại. */
+export interface BrewSheet {
+  rows: BrewRow[]
+  totalCups: number
+}

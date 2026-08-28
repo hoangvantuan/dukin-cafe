@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, fmtVnd, vnToday, type PlaceOrderBody } from '../api'
-import type { AdminOrder, Intake, MenuItem, OrderStatus } from '../types'
+import type { AdminOrder, BrewSheet, Intake, MenuItem, OrderStatus } from '../types'
 import OrderEditor from './OrderEditor'
 
 /** Bước chuyển tiếp chủ quán bấm được, khớp ALLOWED_TRANSITIONS phía máy chủ. */
@@ -46,9 +46,13 @@ function fmtDay(date: string): string {
 }
 
 export default function Orders() {
+  // Hai chế độ xem trong cùng tab: danh sách từng Đơn hàng, hoặc Bảng pha chế
+  // đã gộp sẵn để biết phải pha bao nhiêu ly mỗi loại.
+  const [view, setView] = useState<'list' | 'brew'>('list')
   const [scope, setScope] = useState<'pending' | 'date'>('pending')
   const [date, setDate] = useState(() => vnToday())
   const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [brew, setBrew] = useState<BrewSheet | null>(null)
   const [error, setError] = useState('')
   const [showManual, setShowManual] = useState(false)
   const [editing, setEditing] = useState<AdminOrder | null>(null)
@@ -57,14 +61,20 @@ export default function Orders() {
 
   const load = useCallback(async () => {
     try {
-      const r = await api.orders(scope, date)
-      setOrders(r.orders)
+      if (view === 'brew') {
+        // Máy chủ gộp sẵn ở tầng miền, giao diện không tự cộng lại.
+        setBrew(await api.brewSheet())
+      } else {
+        const r = await api.orders(scope, date)
+        setOrders(r.orders)
+      }
       setLastSync(vnTime(new Date().toISOString()))
       setError('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không tải được danh sách đơn hàng')
+      const fallback = view === 'brew' ? 'Không tải được Bảng pha chế' : 'Không tải được danh sách đơn hàng'
+      setError(e instanceof Error ? e.message : fallback)
     }
-  }, [scope, date])
+  }, [view, scope, date])
 
   useEffect(() => {
     void load()
@@ -99,139 +109,222 @@ export default function Orders() {
 
   return (
     <div className="orders-container">
-      {/* THANH CÔNG CỤ & KPI SUMMARY */}
-      <div className="orders-top-control">
-        <div className="scope-tabs">
-          <button
-            className={`scope-tab ${scope === 'pending' ? 'active' : ''}`}
-            onClick={() => setScope('pending')}
-          >
-            Cần xử lý
-            {freshCount > 0 && scope === 'pending' && <span className="tab-badge">{freshCount}</span>}
-          </button>
-          <button
-            className={`scope-tab ${scope === 'date' ? 'active' : ''}`}
-            onClick={() => setScope('date')}
-          >
-            Theo ngày đặt
-          </button>
-        </div>
-
-        {scope === 'date' && (
-          <div className="date-picker-wrap">
-            <input
-              type="date"
-              className="admin-input date-input"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <button className="btn-admin-light btn-today" onClick={() => setDate(vnToday())}>
-              Hôm nay
-            </button>
-          </div>
-        )}
-
+      {/* HAI CHẾ ĐỘ XEM TRONG CÙNG TAB ĐƠN HÀNG */}
+      <div className="scope-tabs view-switch">
         <button
-          className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
-          onClick={() => setShowManual((v) => !v)}
+          className={`scope-tab ${view === 'list' ? 'active' : ''}`}
+          onClick={() => setView('list')}
         >
-          {showManual ? '✕ Đóng form nhập' : '+ Nhập hộ đơn (Zalo)'}
+          Danh sách đơn
+        </button>
+        <button
+          className={`scope-tab ${view === 'brew' ? 'active' : ''}`}
+          onClick={() => setView('brew')}
+        >
+          Bảng pha chế
         </button>
       </div>
-
-      {/* KPI METRIC CARDS */}
-      <div className="kpi-metrics-grid">
-        <div className="kpi-card">
-          <span className="kpi-title">{scope === 'pending' ? 'Đơn cần xử lý' : 'Đơn trong ngày'}</span>
-          <span className="kpi-value">{orders.length}</span>
-          <span className="kpi-hint">{freshCount} đơn mới chưa xác nhận</span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-title">Tổng tiền</span>
-          <span className="kpi-value gold">{fmtVnd(totalRevenue)}</span>
-          <span className="kpi-hint">Đã trừ đơn hủy</span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-title">Giao tận nơi</span>
-          <span className="kpi-value">{activeOrders.filter((o) => o.receiveMode === 'delivery').length} đơn</span>
-          <span className="kpi-hint">
-            {activeOrders.filter((o) => o.receiveMode === 'pickup').length} đơn nhận tại quán
-          </span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-title">Chờ thu tiền</span>
-          <span className="kpi-value">
-            {fmtVnd(activeOrders.filter((o) => o.status === 'new' || o.status === 'confirmed').reduce((s, o) => s + o.total, 0))}
-          </span>
-          <span className="kpi-hint">Tự làm mới lúc {lastSync}</span>
-        </div>
-      </div>
-
-      {/* FORM NHẬP HỘ ĐƠN TỪ ZALO */}
-      {showManual && (
-        <ManualOrder
-          onDone={() => {
-            setShowManual(false)
-            void load()
-          }}
-        />
-      )}
-
-      {/* SỬA MỘT ĐƠN */}
-      {editing && (
-        <OrderEditor
-          order={editing}
-          onCancel={() => setEditing(null)}
-          onDone={(changes) => {
-            setEditing(null)
-            setOkMsg(
-              changes.length === 0
-                ? 'Đã lưu, không có gì thay đổi nên không báo lên Teams.'
-                : `Đã sửa ${changes.map((c) => c.label.toLowerCase()).join(', ')} và báo vào luồng Teams của đơn.`,
-            )
-            window.setTimeout(() => setOkMsg(''), 5000)
-            void load()
-          }}
-        />
-      )}
 
       {error && <div className="admin-error-alert">{error}</div>}
       {okMsg && <div className="admin-success-alert">{okMsg}</div>}
 
-      {/* DANH SÁCH ĐƠN HÀNG */}
-      {scope === 'pending'
-        ? [...byDay.entries()].map(([day, list]) => (
-            <OrderSection
-              key={day}
-              title={`Đặt ngày ${fmtDay(day)}`}
-              icon="📅"
-              orders={list}
-              onMove={move}
-              onEdit={setEditing}
-            />
-          ))
-        : orders.length > 0 && (
-            <OrderSection
-              title={`Đơn đặt ngày ${fmtDay(date)}`}
-              icon="📅"
-              orders={orders}
-              onMove={move}
-              onEdit={setEditing}
+      {view === 'brew' ? (
+        <BrewSheetView sheet={brew} lastSync={lastSync} />
+      ) : (
+        <>
+          {/* THANH CÔNG CỤ & KPI SUMMARY */}
+          <div className="orders-top-control">
+            <div className="scope-tabs">
+              <button
+                className={`scope-tab ${scope === 'pending' ? 'active' : ''}`}
+                onClick={() => setScope('pending')}
+              >
+                Cần xử lý
+                {freshCount > 0 && scope === 'pending' && <span className="tab-badge">{freshCount}</span>}
+              </button>
+              <button
+                className={`scope-tab ${scope === 'date' ? 'active' : ''}`}
+                onClick={() => setScope('date')}
+              >
+                Theo ngày đặt
+              </button>
+            </div>
+
+            {scope === 'date' && (
+              <div className="date-picker-wrap">
+                <input
+                  type="date"
+                  className="admin-input date-input"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+                <button className="btn-admin-light btn-today" onClick={() => setDate(vnToday())}>
+                  Hôm nay
+                </button>
+              </div>
+            )}
+
+            <button
+              className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
+              onClick={() => setShowManual((v) => !v)}
+            >
+              {showManual ? '✕ Đóng form nhập' : '+ Nhập hộ đơn (Zalo)'}
+            </button>
+          </div>
+
+          {/* KPI METRIC CARDS */}
+          <div className="kpi-metrics-grid">
+            <div className="kpi-card">
+              <span className="kpi-title">{scope === 'pending' ? 'Đơn cần xử lý' : 'Đơn trong ngày'}</span>
+              <span className="kpi-value">{orders.length}</span>
+              <span className="kpi-hint">{freshCount} đơn mới chưa xác nhận</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-title">Tổng tiền</span>
+              <span className="kpi-value gold">{fmtVnd(totalRevenue)}</span>
+              <span className="kpi-hint">Đã trừ đơn hủy</span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-title">Giao tận nơi</span>
+              <span className="kpi-value">{activeOrders.filter((o) => o.receiveMode === 'delivery').length} đơn</span>
+              <span className="kpi-hint">
+                {activeOrders.filter((o) => o.receiveMode === 'pickup').length} đơn nhận tại quán
+              </span>
+            </div>
+            <div className="kpi-card">
+              <span className="kpi-title">Chờ thu tiền</span>
+              <span className="kpi-value">
+                {fmtVnd(activeOrders.filter((o) => o.status === 'new' || o.status === 'confirmed').reduce((s, o) => s + o.total, 0))}
+              </span>
+              <span className="kpi-hint">Tự làm mới lúc {lastSync}</span>
+            </div>
+          </div>
+
+          {/* FORM NHẬP HỘ ĐƠN TỪ ZALO */}
+          {showManual && (
+            <ManualOrder
+              onDone={() => {
+                setShowManual(false)
+                void load()
+              }}
             />
           )}
 
-      {orders.length === 0 && (
-        <div className="empty-orders-view">
-          <span className="empty-icon">☕</span>
-          <h3>
-            {scope === 'pending'
-              ? 'Không còn đơn nào chờ xử lý'
-              : `Chưa có đơn nào đặt ngày ${fmtDay(date)}`}
-          </h3>
-          <p>Khách có thể đặt qua trang bán hoặc bạn có thể bấm "Nhập hộ đơn (Zalo)".</p>
-        </div>
+          {/* SỬA MỘT ĐƠN */}
+          {editing && (
+            <OrderEditor
+              order={editing}
+              onCancel={() => setEditing(null)}
+              onDone={(changes) => {
+                setEditing(null)
+                setOkMsg(
+                  changes.length === 0
+                    ? 'Đã lưu, không có gì thay đổi nên không báo lên Teams.'
+                    : `Đã sửa ${changes.map((c) => c.label.toLowerCase()).join(', ')} và báo vào luồng Teams của đơn.`,
+                )
+                window.setTimeout(() => setOkMsg(''), 5000)
+                void load()
+              }}
+            />
+          )}
+
+          {/* DANH SÁCH ĐƠN HÀNG */}
+          {scope === 'pending'
+            ? [...byDay.entries()].map(([day, list]) => (
+                <OrderSection
+                  key={day}
+                  title={`Đặt ngày ${fmtDay(day)}`}
+                  icon="📅"
+                  orders={list}
+                  onMove={move}
+                  onEdit={setEditing}
+                />
+              ))
+            : orders.length > 0 && (
+                <OrderSection
+                  title={`Đơn đặt ngày ${fmtDay(date)}`}
+                  icon="📅"
+                  orders={orders}
+                  onMove={move}
+                  onEdit={setEditing}
+                />
+              )}
+
+          {orders.length === 0 && (
+            <div className="empty-orders-view">
+              <span className="empty-icon">☕</span>
+              <h3>
+                {scope === 'pending'
+                  ? 'Không còn đơn nào chờ xử lý'
+                  : `Chưa có đơn nào đặt ngày ${fmtDay(date)}`}
+              </h3>
+              <p>Khách có thể đặt qua trang bán hoặc bạn có thể bấm "Nhập hộ đơn (Zalo)".</p>
+            </div>
+          )}
+        </>
       )}
     </div>
+  )
+}
+
+/**
+ * Bảng pha chế: máy chủ gộp Hàng đợi xử lý theo cặp Món và Tùy chọn, đây chỉ
+ * hiển thị lại. Bảng để xem, không có ô tích đánh dấu đã pha.
+ */
+function BrewSheetView({ sheet, lastSync }: { sheet: BrewSheet | null; lastSync: string }) {
+  if (!sheet) return <div className="brew-loading">Đang gộp Bảng pha chế...</div>
+
+  if (sheet.rows.length === 0) {
+    return (
+      <div className="empty-orders-view">
+        <span className="empty-icon">☕</span>
+        <h3>Không còn ly nào phải pha</h3>
+        <p>Hàng đợi xử lý đang trống. Có đơn mới là bảng hiện ngay.</p>
+      </div>
+    )
+  }
+
+  return (
+    <section className="admin-order-section">
+      <div className="section-header">
+        <h2>
+          <span className="sec-icon">☕</span> Bảng pha chế
+        </h2>
+        <span className="section-meta">
+          Gộp toàn bộ hàng đợi xử lý • <b>{sheet.totalCups} ly</b>
+          {lastSync && ` • tự làm mới lúc ${lastSync}`}
+        </span>
+      </div>
+
+      <div className="admin-table-wrapper">
+        <table className="admin-table brew-table">
+          <thead>
+            <tr>
+              <th>Món</th>
+              <th>Tùy chọn</th>
+              <th className="num">Số ly</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sheet.rows.map((r) => (
+              <tr key={`${r.name}||${r.optionSummary}`}>
+                <td className="td-name">
+                  <b>{r.name}</b>
+                </td>
+                <td className="brew-option">{r.optionSummary || 'Không có'}</td>
+                <td className="num brew-qty">{r.qty}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="brew-total-row">
+              <td colSpan={2}>Tổng số ly phải pha</td>
+              <td className="num">{sheet.totalCups}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
   )
 }
 

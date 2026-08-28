@@ -1498,3 +1498,41 @@ body {
   text-decoration: line-through;
   font-size: 13px;
 }
+
+/* ============ BẢNG PHA CHẾ ============ */
+
+/* Chuyển giữa danh sách đơn và Bảng pha chế, ngay trong tab Đơn hàng. */
+.view-switch {
+  margin-bottom: 14px;
+}
+
+.brew-loading {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--admin-text-muted);
+  font-size: 13.5px;
+}
+
+.brew-table .brew-option {
+  color: var(--admin-text-muted);
+}
+
+.brew-table .brew-qty {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--admin-espresso);
+}
+
+/* Dòng tổng đóng bảng lại, để chủ quán liếc một cái là biết pha bao nhiêu ly. */
+.brew-table tfoot .brew-total-row td {
+  background: #f9f6f0;
+  border-top: 2px solid var(--admin-border);
+  border-bottom: none;
+  font-weight: 700;
+  color: var(--admin-espresso);
+}
+
+.brew-table tfoot .brew-total-row td.num {
+  font-size: 16px;
+  color: var(--admin-gold-dark);
+}

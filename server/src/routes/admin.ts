@@ -24,6 +24,7 @@ import { diffOrder } from '../domain/orderDiff.js'
 import { botConfigFromSettings, listTeamMembers } from '../teams/bot.js'
 import { vnNow } from '../domain/day.js'
 import { isPeriod, summarize, type StatLine, type StatOrder } from '../domain/stats.js'
+import { brewSheet, type BrewLine } from '../domain/brewSheet.js'
 
 async function orderPayload(o: OrderRow) {
   return {
@@ -296,6 +297,21 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
       `),
     )
     return summarize({ orders, lines, period, today: vnNow().date, span })
+  })
+
+  /**
+   * Bảng pha chế: gộp Hàng đợi xử lý theo cặp Món và Tùy chọn để chủ quán biết
+   * phải pha bao nhiêu ly mỗi loại. Việc gộp là hàm thuần ở tầng miền; tuyến
+   * này chỉ đọc dữ liệu rồi giao cho nó, giao diện không tự cộng lại.
+   */
+  app.get('/api/admin/brew-sheet', async () => {
+    const lines = allRows<BrewLine>(
+      db.prepare(`
+        SELECT o.status, i.name, i.option_summary AS optionSummary, i.qty
+        FROM order_items i JOIN orders o ON o.id = i.order_id
+      `),
+    )
+    return brewSheet(lines)
   })
 
   /** Tình hình nhận đơn hôm nay, cho form nhập hộ biết còn chỗ hay không. */
