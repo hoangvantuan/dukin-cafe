@@ -1,4 +1,5 @@
-# Chạy: cp .env.example .env, sửa giá trị, rồi `docker compose up -d --build`
+# Triển khai: cp .env.example .env, sửa giá trị, rồi `docker compose up -d --build`
+# HTTPS do Cloudflare Tunnel đảm nhiệm (chủ quán tự cấu hình, trỏ về http://localhost:8090).
 services:
   app:
     build: .
@@ -7,26 +8,10 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Cần ADMIN_PASSWORD trong .env}
       SESSION_SECRET: ${SESSION_SECRET:?Cần SESSION_SECRET trong .env}
       TEAMS_WEBHOOK_SECRET: ${TEAMS_WEBHOOK_SECRET:-}
+    ports:
+      # Cho cloudflared trên cùng máy trỏ tới.
+      - "127.0.0.1:8090:8080"
+      # Truy cập nội bộ qua Tailscale để chủ quán dùng và kiểm tra.
+      - "100.123.116.92:8090:8080"
     volumes:
       - ./data:/app/data
-    expose:
-      - "8080"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN:?Cần DOMAIN trong .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-
-volumes:
-  caddy_data:
-  caddy_config:
