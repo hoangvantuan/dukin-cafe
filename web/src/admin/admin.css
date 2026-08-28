@@ -1403,3 +1403,98 @@ body {
   text-align: right;
   white-space: nowrap;
 }
+
+/* ============ SỬA ĐƠN ============ */
+
+.order-editor {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid #c9a227;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.btn-st-edit {
+  background: #fff;
+  border: 1px solid #8a7550;
+  color: #6b5c4a;
+}
+
+.btn-st-edit:hover {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: #c9a227;
+  color: #2c2118;
+}
+
+.edit-warning {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e0b877;
+  background: rgba(224, 184, 119, 0.14);
+  color: #7a5518;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.edit-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-line {
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.edit-line-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Nhóm Tùy chọn của từng dòng món, xuống hàng gọn trên điện thoại. */
+.edit-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.edit-group-name {
+  font-size: 12px;
+  color: #6b5c4a;
+  margin-right: 4px;
+}
+
+.edit-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.edit-add-row .admin-select {
+  flex: 1;
+  min-width: 220px;
+}
+
+.edit-total {
+  font-size: 14px;
+  color: #2c2118;
+  white-space: nowrap;
+}
+
+.edit-total-old {
+  color: #9c8d7c;
+  text-decoration: line-through;
+  font-size: 13px;
+}

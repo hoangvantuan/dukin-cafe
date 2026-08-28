@@ -1,8 +1,9 @@
 import { db, findCustomer, getSettings } from '../db.js'
 import { fmtVnd, nameKey } from '../util.js'
 import { loadOrder, loadOrderItems, orderCode, STATUS_LABEL } from '../orders.js'
+import { changeSummary, type Change } from '../domain/orderDiff.js'
 import { botConfigFromSettings, sendOrderReply, sendOrderRoot, type Mention } from './bot.js'
-import { orderCard, statusCard } from './card.js'
+import { editCard, orderCard, statusCard } from './card.js'
 
 /** Người phụ trách; email chỉ để chủ quán nhận ra ai là ai trên Trang quản lý. */
 export interface Recipient extends Mention {
@@ -97,5 +98,29 @@ export async function notifyStatusChanged(orderId: number): Promise<void> {
     })
   } catch (e) {
     console.error(`Teams: trả lời đơn ${orderCode(orderId)} thất bại:`, e)
+  }
+}
+
+/**
+ * Báo Đơn hàng vừa sửa vào đúng Luồng Đơn hàng, kèm nội dung trước và sau.
+ * Không có gì đổi thì không gửi, tránh làm nhiễu nhóm.
+ */
+export async function notifyOrderEdited(orderId: number, changes: Change[]): Promise<void> {
+  if (changes.length === 0) return
+  const settings = getSettings()
+  const cfg = botConfigFromSettings(settings)
+  const order = loadOrder(orderId)
+  if (!cfg || !order || !order.teams_thread) return
+  const mentions = dedupe([
+    ...parseRecipients(settings.notifyRecipients),
+    ...(settings.notifyCustomerOnNew === '1' ? customerMention(order.customer_name) : []),
+  ])
+  try {
+    await sendOrderReply(cfg, order.teams_thread, {
+      card: editCard(order, changes, mentions),
+      summary: `Đã sửa đơn ${orderCode(order.id)}: ${changeSummary(changes)}`,
+    })
+  } catch (e) {
+    console.error(`Teams: báo sửa đơn ${orderCode(orderId)} thất bại:`, e)
   }
 }

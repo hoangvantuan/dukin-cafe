@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, fmtVnd, vnToday, type PlaceOrderBody } from '../api'
 import type { AdminOrder, Intake, MenuItem, OrderStatus } from '../types'
+import OrderEditor from './OrderEditor'
 
 /** Bước chuyển tiếp chủ quán bấm được, khớp ALLOWED_TRANSITIONS phía máy chủ. */
 const NEXT_ACTIONS: Record<OrderStatus, Array<{ target: OrderStatus; label: string; btnClass: string }>> = {
@@ -50,6 +51,8 @@ export default function Orders() {
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [error, setError] = useState('')
   const [showManual, setShowManual] = useState(false)
+  const [editing, setEditing] = useState<AdminOrder | null>(null)
+  const [okMsg, setOkMsg] = useState('')
   const [lastSync, setLastSync] = useState('')
 
   const load = useCallback(async () => {
@@ -68,10 +71,12 @@ export default function Orders() {
   }, [load])
 
   // Tự làm mới: đơn từ Trang bán về lúc nào chủ quán cũng thấy ngay.
+  // Dừng khi đang sửa đơn, để danh sách nạp lại không cuốn mất form đang gõ dở.
   useEffect(() => {
+    if (editing) return
     const timer = window.setInterval(() => void load(), REFRESH_MS)
     return () => window.clearInterval(timer)
-  }, [load])
+  }, [load, editing])
 
   async function move(id: number, target: OrderStatus): Promise<void> {
     try {
@@ -172,15 +177,47 @@ export default function Orders() {
         />
       )}
 
+      {/* SỬA MỘT ĐƠN */}
+      {editing && (
+        <OrderEditor
+          order={editing}
+          onCancel={() => setEditing(null)}
+          onDone={(changes) => {
+            setEditing(null)
+            setOkMsg(
+              changes.length === 0
+                ? 'Đã lưu, không có gì thay đổi nên không báo lên Teams.'
+                : `Đã sửa ${changes.map((c) => c.label.toLowerCase()).join(', ')} và báo vào luồng Teams của đơn.`,
+            )
+            window.setTimeout(() => setOkMsg(''), 5000)
+            void load()
+          }}
+        />
+      )}
+
       {error && <div className="admin-error-alert">{error}</div>}
+      {okMsg && <div className="admin-success-alert">{okMsg}</div>}
 
       {/* DANH SÁCH ĐƠN HÀNG */}
       {scope === 'pending'
         ? [...byDay.entries()].map(([day, list]) => (
-            <OrderSection key={day} title={`Đặt ngày ${fmtDay(day)}`} icon="📅" orders={list} onMove={move} />
+            <OrderSection
+              key={day}
+              title={`Đặt ngày ${fmtDay(day)}`}
+              icon="📅"
+              orders={list}
+              onMove={move}
+              onEdit={setEditing}
+            />
           ))
         : orders.length > 0 && (
-            <OrderSection title={`Đơn đặt ngày ${fmtDay(date)}`} icon="📅" orders={orders} onMove={move} />
+            <OrderSection
+              title={`Đơn đặt ngày ${fmtDay(date)}`}
+              icon="📅"
+              orders={orders}
+              onMove={move}
+              onEdit={setEditing}
+            />
           )}
 
       {orders.length === 0 && (
@@ -203,11 +240,13 @@ function OrderSection({
   icon,
   orders,
   onMove,
+  onEdit,
 }: {
   title: string
   icon: string
   orders: AdminOrder[]
   onMove: (id: number, target: OrderStatus) => void
+  onEdit: (order: AdminOrder) => void
 }) {
   const activeCount = orders.filter((o) => o.status !== 'cancelled').length
   const revenue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0)
@@ -288,15 +327,19 @@ function OrderSection({
 
             <div className="card-time-meta">Đặt lúc {vnTime(o.createdAt)}</div>
 
-            {NEXT_ACTIONS[o.status].length > 0 && (
-              <div className="card-actions-row">
-                {NEXT_ACTIONS[o.status].map((a) => (
-                  <button key={a.target} className={`btn-action ${a.btnClass}`} onClick={() => onMove(o.id, a.target)}>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="card-actions-row">
+              {/* Đơn đã hủy thì khóa hẳn, không sửa được nữa. */}
+              {o.status !== 'cancelled' && (
+                <button className="btn-action btn-st-edit" onClick={() => onEdit(o)}>
+                  ✏️ Sửa đơn
+                </button>
+              )}
+              {NEXT_ACTIONS[o.status].map((a) => (
+                <button key={a.target} className={`btn-action ${a.btnClass}`} onClick={() => onMove(o.id, a.target)}>
+                  {a.label}
+                </button>
+              ))}
+            </div>
           </article>
         ))}
       </div>

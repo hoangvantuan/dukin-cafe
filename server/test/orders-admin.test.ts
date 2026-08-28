@@ -351,3 +351,151 @@ test('thống kê cần đăng nhập', async () => {
   const res = await app.inject({ url: '/api/admin/stats' })
   assert.equal(res.statusCode, 401)
 })
+
+test('sửa đơn tính lại tiền và trả về đúng những mục đã đổi', async () => {
+  const cookie = await login()
+  const { id } = await placeOrder('Sua Don')
+  const menu = (await app.inject({ url: '/api/menu' }).then((r) => r.json())) as {
+    items: Array<{ id: number; price: number; groups: Array<{ options: Array<{ id: number; priceAdd: number }> }> }>
+  }
+  const item = menu.items[0]
+  const opt = item.groups[0].options[1] ?? item.groups[0].options[0]
+
+  const res = await app.inject({
+    method: 'PUT',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: {
+      customerName: 'Sua Don',
+      receiveMode: 'delivery',
+      location: 'Tầng 9',
+      note: 'Thêm đá',
+      paymentMethod: 'cash',
+      items: [{ itemId: item.id, qty: 3, optionIds: [opt.id] }],
+    },
+  })
+  assert.equal(res.statusCode, 200, res.body)
+  const body = res.json() as {
+    total: number
+    location: string
+    items: Array<{ qty: number; optionIds: number[] }>
+    changes: Array<{ label: string; before: string; after: string }>
+  }
+  assert.equal(body.total, (item.price + opt.priceAdd) * 3, 'giá tính lại từ Thực đơn')
+  assert.equal(body.location, 'Tầng 9')
+  assert.equal(body.items[0].qty, 3)
+  assert.deepEqual(body.items[0].optionIds, [opt.id], 'mã Tùy chọn được giữ để lần sau sửa tiếp')
+
+  const labels = body.changes.map((c) => c.label)
+  assert.ok(labels.includes('Cách nhận') && labels.includes('Vị trí giao'))
+  assert.ok(labels.includes('Ghi chú') && labels.includes('Món') && labels.includes('Tổng tiền'))
+  assert.ok(!labels.includes('Khách'), 'tên khách không đổi thì không nêu')
+})
+
+test('sửa đơn không đụng tới Trạng thái Đơn hàng', async () => {
+  const cookie = await login()
+  const { id } = await placeOrder('Giu Trang Thai')
+  await app.inject({
+    method: 'PATCH',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: { status: 'confirmed' },
+  })
+  const menu = (await app.inject({ url: '/api/menu' }).then((r) => r.json())) as {
+    items: Array<{ id: number; groups: Array<{ options: Array<{ id: number }> }> }>
+  }
+  const item = menu.items[0]
+  const res = await app.inject({
+    method: 'PUT',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: {
+      customerName: 'Giu Trang Thai',
+      receiveMode: 'pickup',
+      location: '',
+      note: 'đổi ghi chú thôi',
+      paymentMethod: 'cash',
+      items: [{ itemId: item.id, qty: 1, optionIds: [item.groups[0].options[0].id] }],
+    },
+  })
+  assert.equal((res.json() as { status: string }).status, 'confirmed')
+})
+
+test('đơn đã hủy thì không sửa được nữa', async () => {
+  const cookie = await login()
+  const { id } = await placeOrder('Da Huy')
+  await app.inject({
+    method: 'PATCH',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: { status: 'cancelled' },
+  })
+  const menu = (await app.inject({ url: '/api/menu' }).then((r) => r.json())) as {
+    items: Array<{ id: number; groups: Array<{ options: Array<{ id: number }> }> }>
+  }
+  const item = menu.items[0]
+  const res = await app.inject({
+    method: 'PUT',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: {
+      customerName: 'Da Huy',
+      receiveMode: 'pickup',
+      location: '',
+      note: '',
+      paymentMethod: 'cash',
+      items: [{ itemId: item.id, qty: 5, optionIds: [item.groups[0].options[0].id] }],
+    },
+  })
+  assert.equal(res.statusCode, 400)
+  assert.match((res.json() as { error: string }).error, /không sửa được/)
+})
+
+test('sửa đơn từ chối dữ liệu hỏng và đơn không có thật', async () => {
+  const cookie = await login()
+  const { id } = await placeOrder('Kiem Tra Loi')
+  const thieuMon = await app.inject({
+    method: 'PUT',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: {
+      customerName: 'Kiem Tra Loi',
+      receiveMode: 'pickup',
+      location: '',
+      note: '',
+      paymentMethod: 'cash',
+      items: [],
+    },
+  })
+  assert.equal(thieuMon.statusCode, 400)
+
+  const thieuViTri = await app.inject({
+    method: 'PUT',
+    url: `/api/admin/orders/${id}`,
+    headers: { cookie },
+    payload: {
+      customerName: 'Kiem Tra Loi',
+      receiveMode: 'delivery',
+      location: '',
+      note: '',
+      paymentMethod: 'cash',
+      items: [{ itemId: 1, qty: 1, optionIds: [] }],
+    },
+  })
+  assert.equal(thieuViTri.statusCode, 400)
+
+  const khongCo = await app.inject({
+    method: 'PUT',
+    url: '/api/admin/orders/999999',
+    headers: { cookie },
+    payload: {
+      customerName: 'Ai Do',
+      receiveMode: 'pickup',
+      location: '',
+      note: '',
+      paymentMethod: 'cash',
+      items: [{ itemId: 1, qty: 1, optionIds: [] }],
+    },
+  })
+  assert.equal(khongCo.statusCode, 404)
+})

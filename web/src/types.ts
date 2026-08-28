@@ -34,10 +34,20 @@ export interface Intake {
 export type OrderStatus = 'new' | 'confirmed' | 'paid' | 'done' | 'cancelled'
 
 export interface AdminOrderItem {
+  itemId: number | null
   name: string
   optionSummary: string
+  /** Mã Tùy chọn đã chọn, để dựng lại form khi sửa đơn. */
+  optionIds: number[]
   unitPrice: number
   qty: number
+}
+
+/** Một mục đã đổi khi sửa đơn, dùng để báo lại cho chủ quán. */
+export interface OrderChange {
+  label: string
+  before: string
+  after: string
 }
 
 export interface AdminOrder {

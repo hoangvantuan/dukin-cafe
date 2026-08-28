@@ -8,7 +8,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dukin-notify-'))
 process.env.DATA_DIR = dataDir
 
 const { db, setSettings, upsertCustomer } = await import('../src/db.js')
-const { notifyNewOrder, notifyStatusChanged } = await import('../src/teams/notify.js')
+const { notifyNewOrder, notifyStatusChanged, notifyOrderEdited } = await import('../src/teams/notify.js')
 const { nowIso } = await import('../src/util.js')
 
 test.after(() => fs.rmSync(dataDir, { recursive: true, force: true }))
@@ -170,4 +170,54 @@ test('Teams lỗi thì đơn vẫn còn, chỉ không có luồng', async () => 
     teams_thread: string
   }
   assert.equal(row.teams_thread, '', 'không có luồng nhưng đơn không mất')
+})
+
+test('sửa đơn thì bot trả lời vào đúng luồng, nêu cả trước và sau', async () => {
+  const id = makeOrder('Hoàng Tuấn')
+  db.prepare("UPDATE orders SET teams_thread = 'msg-goc' WHERE id = ?").run(id)
+  const { sent, restore } = captureFetch()
+  try {
+    await notifyOrderEdited(id, [
+      { label: 'Món', before: 'Đen (Vừa) × 2', after: 'Muối Kem (Lớn) × 1' },
+      { label: 'Tổng tiền', before: '40.000đ', after: '55.000đ' },
+    ])
+  } finally {
+    restore()
+  }
+  assert.equal(sent.length, 1)
+  assert.ok(sent[0].url.includes(';messageid=msg-goc'), 'phải trả lời trong luồng của đơn')
+
+  const card = sent[0].activity.attachments![0].content as {
+    msteams?: { entities: Array<{ mentioned: { id: string } }> }
+  }
+  const flat = JSON.stringify(card)
+  assert.ok(flat.includes('Đã sửa đơn'))
+  assert.ok(flat.includes('Đen (Vừa) × 2'), 'nội dung trước khi sửa')
+  assert.ok(flat.includes('Muối Kem (Lớn) × 1'), 'nội dung sau khi sửa')
+  assert.ok(flat.includes('40.000đ') && flat.includes('55.000đ'))
+  assert.ok(sent[0].activity.summary?.includes('món, tổng tiền'), 'tóm tắt nêu mục đã đổi')
+  assert.deepEqual(card.msteams?.entities.map((e) => e.mentioned.id), ['29:bep', '29:tuan'])
+})
+
+test('không có gì đổi thì không làm phiền nhóm', async () => {
+  const id = makeOrder('Hoàng Tuấn')
+  db.prepare("UPDATE orders SET teams_thread = 'msg-goc' WHERE id = ?").run(id)
+  const { sent, restore } = captureFetch()
+  try {
+    await notifyOrderEdited(id, [])
+  } finally {
+    restore()
+  }
+  assert.equal(sent.length, 0)
+})
+
+test('đơn chưa có luồng Teams thì bỏ qua, không lỗi', async () => {
+  const id = makeOrder('Hoàng Tuấn')
+  const { sent, restore } = captureFetch()
+  try {
+    await notifyOrderEdited(id, [{ label: 'Ghi chú', before: '(không có)', after: 'Ít đá' }])
+  } finally {
+    restore()
+  }
+  assert.equal(sent.length, 0)
 })

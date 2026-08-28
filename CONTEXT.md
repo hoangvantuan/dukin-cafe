@@ -94,6 +94,10 @@ _Avoid_: period, khoảng, range
 Chuỗi tin nhắn trên nhóm Microsoft Teams tương ứng với một Đơn hàng: mở khi có đơn mới, cập nhật mỗi lần đổi Trạng thái Đơn hàng. Mỗi tin là một Thẻ đơn hàng.
 _Avoid_: thread, notification, alert
 
+**Sửa đơn**:
+Việc chủ quán đổi nội dung một Đơn hàng đã đặt: Món, Tùy chọn, số lượng, Cách nhận hàng, Vị trí giao, ghi chú, Cách thanh toán. Không đổi Trạng thái Đơn hàng. Mỗi lần sửa, Bot DUKIN trả lời vào Luồng Đơn hàng nêu rõ trước và sau.
+_Avoid_: edit, cập nhật đơn, chỉnh sửa
+
 **Thẻ đơn hàng**:
 Tin nhắn dạng thẻ (Adaptive Card) Bot DUKIN gửi lên Teams, gồm mã đơn, danh sách Món, tổng tiền, Cách nhận hàng, giờ đặt và phần gắn thẻ người liên quan.
 _Avoid_: message, notification, tin nhắn thường

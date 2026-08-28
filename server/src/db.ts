@@ -142,6 +142,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   item_id INTEGER,
   name TEXT NOT NULL,
   option_summary TEXT NOT NULL DEFAULT '',
+  /** Mã các Tùy chọn đã chọn, dạng JSON, để dựng lại form khi chủ quán sửa đơn. */
+  option_ids TEXT NOT NULL DEFAULT '[]',
   unit_price INTEGER NOT NULL,
   qty INTEGER NOT NULL DEFAULT 1
 );
@@ -298,6 +300,50 @@ function migrateOrderCustomerKey(): void {
 }
 
 migrateOrderCustomerKey()
+
+/**
+ * Dòng món cũ chỉ lưu Tùy chọn dạng chữ, không lưu mã, nên không dựng lại được
+ * form sửa đơn. Suy ngược mã từ tên Tùy chọn của chính Món đó; dòng nào không
+ * khớp thì để rỗng và chủ quán chọn lại khi sửa.
+ */
+function migrateOrderOptionIds(): void {
+  const cols = allRows<{ name: string }>(db.prepare('PRAGMA table_info(order_items)'))
+  if (!cols.some((c) => c.name === 'option_ids')) {
+    db.exec("ALTER TABLE order_items ADD COLUMN option_ids TEXT NOT NULL DEFAULT '[]'")
+  }
+  const rows = allRows<{ id: number; item_id: number | null; option_summary: string }>(
+    db.prepare("SELECT id, item_id, option_summary FROM order_items WHERE option_ids = '[]' AND option_summary != ''"),
+  )
+  if (rows.length === 0) return
+
+  interface OptRow { id: number; item_id: number; name: string }
+  const opts = allRows<OptRow>(
+    db.prepare(`
+      SELECT o.id, g.item_id, o.name
+      FROM options o JOIN option_groups g ON g.id = o.group_id
+    `),
+  )
+  const byItem = new Map<number, Map<string, number>>()
+  for (const o of opts) {
+    const m = byItem.get(o.item_id) ?? new Map<string, number>()
+    m.set(nameKey(o.name), o.id)
+    byItem.set(o.item_id, m)
+  }
+
+  const stmt = db.prepare('UPDATE order_items SET option_ids = ? WHERE id = ?')
+  tx(() => {
+    for (const r of rows) {
+      if (r.item_id == null) continue
+      const names = r.option_summary.split(',').map((x) => nameKey(x))
+      const lookup = byItem.get(r.item_id)
+      if (!lookup) continue
+      const ids = names.map((n) => lookup.get(n)).filter((x): x is number => x != null)
+      if (ids.length === names.length) stmt.run(JSON.stringify(ids), r.id)
+    }
+  })
+}
+
+migrateOrderOptionIds()
 
 export interface CustomerRow {
   id: number

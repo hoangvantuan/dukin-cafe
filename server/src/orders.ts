@@ -1,5 +1,6 @@
 import { allRows, db, findCustomer, getRow, getSettings, tx, upsertCustomer } from './db.js'
 import { vnNow } from './domain/day.js'
+import type { DiffOrder } from './domain/orderDiff.js'
 import { asciiFold, nameKey, nowIso } from './util.js'
 
 export type OrderStatus = 'new' | 'confirmed' | 'paid' | 'done' | 'cancelled'
@@ -46,8 +47,19 @@ export interface OrderItemRow {
   item_id: number | null
   name: string
   option_summary: string
+  option_ids: string
   unit_price: number
   qty: number
+}
+
+/** Mã Tùy chọn của một dòng món; dòng cũ chưa suy ra được thì trả mảng rỗng. */
+export function lineOptionIds(row: OrderItemRow): number[] {
+  try {
+    const v = JSON.parse(row.option_ids || '[]') as unknown
+    return Array.isArray(v) ? v.filter((x): x is number => typeof x === 'number') : []
+  } catch {
+    return []
+  }
 }
 
 export interface IncomingLine {
@@ -143,6 +155,8 @@ export interface ResolvedLine {
   itemId: number
   name: string
   optionSummary: string
+  /** Mã Tùy chọn đã chọn, giữ lại để dựng form khi sửa đơn. */
+  optionIds: number[]
   unitPrice: number
   qty: number
 }
@@ -197,7 +211,14 @@ export function resolveLines(
       }
     }
     const unitPrice = item.price + priceAdd
-    resolved.push({ itemId, name: item.name, optionSummary: chosenNames.join(', '), unitPrice, qty })
+    resolved.push({
+      itemId,
+      name: item.name,
+      optionSummary: chosenNames.join(', '),
+      optionIds: [...optionIds],
+      unitPrice,
+      qty,
+    })
     total += unitPrice * qty
   }
   return { ok: true, lines: resolved, total }
@@ -242,8 +263,8 @@ export function createOrder(
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)
   `)
   const insertLine = db.prepare(`
-    INSERT INTO order_items(order_id, item_id, name, option_summary, unit_price, qty)
-    VALUES(?, ?, ?, ?, ?, ?)
+    INSERT INTO order_items(order_id, item_id, name, option_summary, option_ids, unit_price, qty)
+    VALUES(?, ?, ?, ?, ?, ?, ?)
   `)
 
   // Đếm trần nằm trong giao dịch cùng lệnh ghi: hai Khách bấm đặt cùng lúc thì
@@ -262,7 +283,7 @@ export function createOrder(
     )
     const orderId = Number(res.lastInsertRowid)
     for (const l of resolved.lines) {
-      insertLine.run(orderId, l.itemId, l.name, l.optionSummary, l.unitPrice, l.qty)
+      insertLine.run(orderId, l.itemId, l.name, l.optionSummary, JSON.stringify(l.optionIds), l.unitPrice, l.qty)
     }
     // Ghi tên vào Danh bạ nhưng giữ nguyên mã Teams đã liên kết trước đó.
     upsertCustomer(customerName, '', true)
@@ -276,6 +297,78 @@ export function createOrder(
     total: resolved.total,
     customerName: created.customerName,
     lines: resolved.lines,
+  }
+}
+
+/** Trạng thái không cho sửa nữa: đơn đã đóng hẳn. */
+export const LOCKED_FOR_EDIT: OrderStatus[] = ['cancelled']
+
+export interface EditableFields {
+  customerName: string
+  receiveMode: 'pickup' | 'delivery'
+  location: string
+  note: string
+  paymentMethod: 'transfer' | 'cash'
+}
+
+/**
+ * Chủ quán sửa Đơn hàng: đổi thông tin nhận hàng và đổi cả danh sách Món.
+ * Giá luôn tính lại từ Thực đơn hiện hành, không tin số client gửi.
+ * Không đụng Trạng thái Đơn hàng và không đụng Luồng Teams đã mở.
+ */
+export function updateOrder(
+  id: number,
+  fields: EditableFields,
+  items: unknown,
+): { ok: true; order: OrderRow } | { ok: false; error: string; code?: number } {
+  const current = loadOrder(id)
+  if (!current) return { ok: false, error: 'Không thấy đơn', code: 404 }
+  if (LOCKED_FOR_EDIT.includes(current.status)) {
+    return { ok: false, error: `Đơn ${STATUS_LABEL[current.status]} thì không sửa được nữa`, code: 400 }
+  }
+  const resolved = resolveLines(items)
+  if (!resolved.ok) return resolved
+
+  const insertLine = db.prepare(`
+    INSERT INTO order_items(order_id, item_id, name, option_summary, option_ids, unit_price, qty)
+    VALUES(?, ?, ?, ?, ?, ?, ?)
+  `)
+  tx(() => {
+    const known = findCustomer(fields.customerName)
+    const customerName = known ? known.name : fields.customerName
+    db.prepare(`
+      UPDATE orders SET customer_name = ?, customer_key = ?, receive_mode = ?, location = ?,
+        note = ?, payment_method = ?, total = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      customerName, nameKey(customerName), fields.receiveMode, fields.location, fields.note,
+      fields.paymentMethod, resolved.total, nowIso(), id,
+    )
+    db.prepare('DELETE FROM order_items WHERE order_id = ?').run(id)
+    for (const l of resolved.lines) {
+      insertLine.run(id, l.itemId, l.name, l.optionSummary, JSON.stringify(l.optionIds), l.unitPrice, l.qty)
+    }
+    upsertCustomer(customerName, '', true)
+  })
+  const fresh = loadOrder(id)
+  return fresh ? { ok: true, order: fresh } : { ok: false, error: 'Lỗi đọc lại đơn', code: 500 }
+}
+
+/** Ảnh chụp Đơn hàng dùng để so trước và sau khi sửa. */
+export function orderSnapshot(o: OrderRow, items: OrderItemRow[]): DiffOrder {
+  return {
+    customerName: o.customer_name,
+    receiveMode: o.receive_mode,
+    location: o.location,
+    note: o.note,
+    paymentMethod: o.payment_method,
+    total: o.total,
+    items: items.map((i) => ({
+      name: i.name,
+      optionSummary: i.option_summary,
+      qty: i.qty,
+      unitPrice: i.unit_price,
+    })),
   }
 }
 

@@ -7,6 +7,7 @@ import { fmtDateShort, vnClock, vnDate } from '../domain/day.js'
 import { fmtVnd } from '../util.js'
 import { orderCode, STATUS_LABEL, type OrderItemRow, type OrderRow } from '../orders.js'
 import type { Mention } from './bot.js'
+import type { Change } from '../domain/orderDiff.js'
 
 const SCHEMA = 'http://adaptivecards.io/schemas/adaptive-card.json'
 const VERSION = '1.4'
@@ -160,6 +161,85 @@ export function statusCard(o: OrderRow, mentions: Mention[]): Block {
           },
         ],
       },
+    ],
+  }
+  return withMentions(card, mentions, '🔔')
+}
+
+/**
+ * Thẻ báo Đơn hàng vừa được sửa: mỗi mục đổi hiện cả nội dung trước và sau,
+ * để người trong nhóm đối chiếu ngay trong Luồng Đơn hàng mà không phải hỏi lại.
+ */
+export function editCard(o: OrderRow, changes: Change[], mentions: Mention[]): Block {
+  const rows: Block[] = []
+  for (const c of changes) {
+    rows.push({
+      type: 'Container',
+      separator: true,
+      spacing: 'Small',
+      items: [
+        textBlock(c.label, { size: 'Small', weight: 'Bolder', isSubtle: true }),
+        {
+          type: 'ColumnSet',
+          spacing: 'None',
+          columns: [
+            {
+              type: 'Column',
+              width: 'stretch',
+              items: [
+                textBlock('Trước', { size: 'Small', isSubtle: true }),
+                textBlock(c.before, { size: 'Small', spacing: 'None' }),
+              ],
+            },
+            {
+              type: 'Column',
+              width: 'auto',
+              verticalContentAlignment: 'Center',
+              items: [textBlock('→', { size: 'Small', isSubtle: true })],
+            },
+            {
+              type: 'Column',
+              width: 'stretch',
+              items: [
+                textBlock('Sau', { size: 'Small', isSubtle: true }),
+                textBlock(c.after, { size: 'Small', weight: 'Bolder', color: 'accent', spacing: 'None' }),
+              ],
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  const card: Block = {
+    $schema: SCHEMA,
+    type: 'AdaptiveCard',
+    version: VERSION,
+    body: [
+      {
+        type: 'ColumnSet',
+        columns: [
+          {
+            type: 'Column',
+            width: 'stretch',
+            items: [
+              textBlock(`✏️ Đã sửa đơn ${orderCode(o.id)}`, { weight: 'Bolder', color: 'warning' }),
+              textBlock(`${o.customer_name} · ${STATUS_LABEL[o.status]}`, {
+                size: 'Small',
+                isSubtle: true,
+                spacing: 'None',
+              }),
+            ],
+          },
+          {
+            type: 'Column',
+            width: 'auto',
+            verticalContentAlignment: 'Center',
+            items: [textBlock(fmtVnd(o.total), { weight: 'Bolder', horizontalAlignment: 'Right' })],
+          },
+        ],
+      },
+      ...rows,
     ],
   }
   return withMentions(card, mentions, '🔔')

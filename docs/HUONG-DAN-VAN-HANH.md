@@ -81,6 +81,7 @@ Không nhập mã Teams bằng tay nữa. Teams chỉ gắn thẻ được bằn
 
 - **Thẻ Thống kê**: doanh thu và tình trạng đặt đơn, xem theo Ngày (14 ngày gần nhất), Tuần (12 tuần), Tháng (12 tháng) hoặc Năm (5 năm). Có biểu đồ doanh thu, số ly đã pha, số khách, phân bố trạng thái đơn, cách khách đặt và nhận, món bán chạy và khách mua nhiều nhất. Doanh thu luôn bỏ đơn đã hủy.
 - **Thẻ Đơn hàng**: mở ra là tab **Cần xử lý**, liệt kê mọi đơn chưa Hoàn tất và chưa Hủy, gom theo ngày khách đặt. Danh sách tự làm mới mỗi 20 giây và huy hiệu đỏ trên tab đếm số đơn mới, nên không cần tải lại trang. Tab **Theo ngày đặt** dùng để đối sổ một ngày cụ thể. Bấm nút chuyển trạng thái theo luồng: Mới → Đã xác nhận → Đã thu tiền → Hoàn tất (hoặc Hủy). Mỗi lần bấm, bot trả lời vào Luồng Đơn hàng trên Teams.
+- **Sửa đơn**: mỗi thẻ đơn có nút "✏️ Sửa đơn" để đổi món, số lượng, tùy chọn, cách nhận, vị trí giao, ghi chú và cách thanh toán. Lưu xong Bot DUKIN trả lời ngay vào luồng của chính đơn đó trên Teams, nêu từng mục đổi kèm nội dung trước và sau, để cả nhóm đối chiếu mà không phải hỏi lại. Không có gì đổi thì không gửi gì. Sửa đơn không đụng Trạng thái Đơn hàng. Đơn đã Hủy thì khóa hẳn; đơn đã thu tiền hoặc đã hoàn tất vẫn sửa được nhưng hiện cảnh báo lệch tiền trước khi lưu.
 - **Nhập hộ (Zalo)**: nút "+ Nhập hộ (Zalo)" để tạo đơn thay khách nhắn Zalo, đơn gắn nhãn Zalo.
 - **Thẻ Thực đơn**: thêm, sửa, xóa món; mỗi món có nhóm tùy chọn (ví dụ Kích cỡ) với mức cộng giá từng lựa chọn; bỏ chọn "Còn bán" để ẩn món tạm thời.
 - Không còn khung giờ nhận hàng: khách đặt lúc nào cũng được, quán tự liệu lúc nào pha và lúc nào giao. Khách muốn hẹn giờ thì viết vào ô Ghi chú.
@@ -127,6 +128,8 @@ Máy `pc` có sẵn kopia: nên thêm đường dẫn `~/projects/dukin-cafe/dat
 | Khám nhật ký | `cd ~/projects/dukin-cafe && docker compose logs -f --tail=100 app` |
 | Khách báo quán đã đủ đơn | Đã chạm giới hạn đơn mỗi ngày, tăng hoặc đặt 0 trong thẻ Cấu hình |
 | Bot không gắn thẻ đúng người | Vào Cấu hình mục 4 và thẻ Danh bạ, chọn lại người từ danh sách nhóm Teams |
+| Không thấy đồng nghiệp trong ô tìm | Danh sách chỉ gồm người đã ở trong nhóm Teams cài Bot DUKIN. Mời họ vào nhóm rồi bấm ↻ tải lại |
+| Sửa đơn xong Teams không báo | Đơn đó chưa mở được luồng (nhãn "Chưa lên Teams"); xem mục 3.4 |
 | Không tải được danh sách nhóm Teams | Bot chưa được cài vào nhóm, hoặc App Secret hết hạn; xem mục 3.3 và 3.4 |
 | Mất mật khẩu quản trị | Sửa lại `ADMIN_PASSWORD` trong `.env` rồi `docker compose up -d` |
 

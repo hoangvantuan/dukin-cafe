@@ -11,12 +11,16 @@ import {
   orderCode,
   STATUS_LABEL,
   transferMemo,
+  lineOptionIds,
+  orderSnapshot,
+  updateOrder,
   validateIncoming,
   vietQrUrl,
   type OrderRow,
   type OrderStatus,
 } from '../orders.js'
-import { notifyNewOrder, notifyStatusChanged, parseRecipients, serializeRecipients } from '../teams/notify.js'
+import { notifyNewOrder, notifyOrderEdited, notifyStatusChanged, parseRecipients, serializeRecipients } from '../teams/notify.js'
+import { diffOrder } from '../domain/orderDiff.js'
 import { botConfigFromSettings, listTeamMembers } from '../teams/bot.js'
 import { vnNow } from '../domain/day.js'
 import { isPeriod, summarize, type StatLine, type StatOrder } from '../domain/stats.js'
@@ -38,8 +42,10 @@ async function orderPayload(o: OrderRow) {
     createdAt: o.created_at,
     teamsThread: o.teams_thread,
     items: loadOrderItems(o.id).map((i) => ({
+      itemId: i.item_id,
       name: i.name,
       optionSummary: i.option_summary,
+      optionIds: lineOptionIds(i),
       unitPrice: i.unit_price,
       qty: i.qty,
     })),
@@ -140,6 +146,29 @@ export async function adminApi(app: FastifyInstance): Promise<void> {
     await notifyStatusChanged(id)
     const fresh = loadOrder(id)
     return fresh ? orderPayload(fresh) : reply.code(500).send({ error: 'Lỗi đọc lại đơn' })
+  })
+
+  /**
+   * Chủ quán sửa nội dung đơn: đổi món, đổi cách nhận, đổi ghi chú.
+   * Sửa xong bot trả lời vào đúng Luồng Đơn hàng, nêu rõ trước và sau.
+   * Không đụng Trạng thái Đơn hàng: việc đó vẫn đi qua PATCH.
+   */
+  app.put('/api/admin/orders/:id', async (req, reply) => {
+    const id = Number((req.params as { id: string }).id)
+    if (!Number.isInteger(id)) return reply.code(400).send({ error: 'Mã đơn không hợp lệ' })
+    const checked = validateIncoming(req.body)
+    if (!checked.ok) return reply.code(400).send({ error: checked.error })
+
+    const before = loadOrder(id)
+    if (!before) return reply.code(404).send({ error: 'Không thấy đơn' })
+    const beforeSnap = orderSnapshot(before, loadOrderItems(id))
+
+    const done = updateOrder(id, checked.order, (req.body as Record<string, unknown>).items)
+    if (!done.ok) return reply.code(done.code ?? 400).send({ error: done.error })
+
+    const changes = diffOrder(beforeSnap, orderSnapshot(done.order, loadOrderItems(id)))
+    await notifyOrderEdited(id, changes)
+    return { ...(await orderPayload(done.order)), changes }
   })
 
   app.get('/api/admin/menu', async () => ({ items: menuTree(true) }))

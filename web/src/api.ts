@@ -1,4 +1,4 @@
-import type { AdminOrder, AdminSettings, Customer, Intake, ItemPayload, MenuItem, OrderStatus, Stats, StatsPeriod, TeamMember } from './types'
+import type { AdminOrder, AdminSettings, Customer, Intake, ItemPayload, MenuItem, OrderChange, OrderStatus, Stats, StatsPeriod, TeamMember } from './types'
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init)
@@ -42,6 +42,12 @@ export const api = {
   pendingCount: () => req<{ pending: number; fresh: number }>('/api/admin/orders/pending-count'),
   patchOrder: (id: number, status: OrderStatus) =>
     req<AdminOrder>(`/api/admin/orders/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) }),
+  editOrder: (id: number, body: PlaceOrderBody) =>
+    req<AdminOrder & { changes: OrderChange[] }>(`/api/admin/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   createManualOrder: (body: PlaceOrderBody) =>
     req<{ id: number; total: number; qrUrl: string | null }>('/api/admin/orders', {
       ...POST,
