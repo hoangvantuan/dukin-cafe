@@ -3,6 +3,8 @@ import { api, type PlaceOrderBody } from '../api'
 import type { Intake, MenuItem } from '../types'
 import { linePrice, type CartLine, type PaymentMethod, type ReceiveMode, type Selection } from './cart'
 import DoneView from './DoneView'
+import LastOrderCard from './LastOrderCard'
+import { mergeLines, readSavedOrder, rebuildOrder, saveOrder, type SavedLine } from './lastOrder'
 import LoadErrorView from './LoadErrorView'
 import MenuList from './MenuList'
 import OrderForm, { type FormErrors } from './OrderForm'
@@ -48,6 +50,8 @@ export default function Store() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [result, setResult] = useState<{ id: number; total: number; qrUrl: string | null } | null>(null)
+  const [savedOrder, setSavedOrder] = useState<SavedLine[]>(() => readSavedOrder())
+  const [usedLastOrder, setUsedLastOrder] = useState(false)
 
   useEffect(() => {
     Promise.all([api.menu(), api.intake(), api.publicConfig()])
@@ -70,6 +74,8 @@ export default function Store() {
   }, [])
 
   const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
+  // Đơn lần trước luôn dựng lại theo Thực đơn và giá hiện tại, không theo giá cũ.
+  const lastOrder = useMemo(() => rebuildOrder(items, savedOrder), [items, savedOrder])
   const cartCount = cart.reduce((n, l) => n + l.qty, 0)
   const cartTotal = cart.reduce((sum, l) => sum + linePrice(itemsById.get(l.itemId)!, l.optionIds) * l.qty, 0)
 
@@ -132,6 +138,16 @@ export default function Store() {
     setCart((prev) => prev.filter((l) => l.key !== key))
   }
 
+  /** Một lần bấm là khay có sẵn Đơn lần trước, Khách chỉnh số lượng ngay tại chỗ. */
+  function reuseLastOrder(): void {
+    if (!lastOrder) return
+    setCart((prev) => mergeLines(prev, lastOrder.lines))
+    setUsedLastOrder(true)
+    clearError('cart')
+    showToast('Đã thêm Đơn lần trước vào khay!')
+    focusField('dukin-khay')
+  }
+
   async function submit(): Promise<void> {
     // Thiếu chỗ nào thì báo đúng chỗ đó rồi cuộn tới, không gom lỗi về một nơi.
     if (cart.length === 0) {
@@ -161,6 +177,7 @@ export default function Store() {
     setSubmitting(true)
     try {
       const r = await api.placeOrder(body)
+      setSavedOrder(saveOrder(cart))
       localStorage.setItem('dukin_name', name.trim())
       if (mode === 'delivery') localStorage.setItem('dukin_location', location.trim())
       // Đơn vừa vào có thể là đơn cuối trong trần ngày, hỏi lại cho lần đặt sau.
@@ -181,6 +198,7 @@ export default function Store() {
     setNote('')
     setResult(null)
     setErrors({})
+    setUsedLastOrder(false)
     setStep('order')
     void api.intake().then(setIntake).catch(() => undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -209,6 +227,15 @@ export default function Store() {
       {toastMessage && <Toast message={toastMessage} />}
 
       <StorePage intake={intake} brewers={brewers}>
+        {lastOrder && !usedLastOrder && (
+          <LastOrderCard
+            lines={lastOrder.lines}
+            itemsById={itemsById}
+            dropped={lastOrder.dropped}
+            canAdd={intake.open}
+            onReuse={reuseLastOrder}
+          />
+        )}
         <MenuList
           items={items}
           sel={sel}

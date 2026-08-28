@@ -157,6 +157,71 @@ body {
   line-height: 1.5;
 }
 
+/* THẺ ĐƠN LẦN TRƯỚC */
+.last-order-card {
+  background: linear-gradient(135deg, rgba(230, 203, 149, 0.22), rgba(197, 158, 88, 0.1));
+  border: 1px solid var(--dk-gold-400);
+  border-radius: var(--dk-radius-md);
+  padding: var(--dk-space-3-5) var(--dk-space-4);
+  margin-bottom: var(--dk-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dk-space-2-5);
+}
+.last-order-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--dk-space-3);
+}
+.last-order-badge {
+  font-family: var(--dk-font-brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--dk-gold-600);
+}
+.last-order-total {
+  font-family: var(--dk-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dk-amber-600);
+}
+.last-order-lines {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dk-space-1);
+}
+.last-order-line {
+  display: flex;
+  gap: var(--dk-space-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--dk-brown-700);
+}
+.last-order-qty {
+  font-weight: 700;
+  color: var(--dk-gold-600);
+  white-space: nowrap;
+}
+.last-order-name {
+  font-weight: 600;
+}
+.last-order-opts {
+  font-weight: 400;
+  color: var(--dk-brown-300);
+}
+.last-order-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--dk-amber-600);
+}
+.last-order-btn {
+  width: 100%;
+  justify-content: center;
+}
+
 /* DANH SÁCH MÓN ĂN (MENU ITEMS) */
 .menu-items-flow {
   display: flex;
