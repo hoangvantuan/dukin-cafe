@@ -83,7 +83,18 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* THANH TABS ĐIỀU HƯỚNG */}
+      {/* NỘI DUNG TỪNG TAB: đứng trước thanh điều hướng để trên điện thoại
+          Đơn hàng đầu tiên hiện ngay, không phải cuộn qua mục điều hướng. */}
+      <main className="admin-main-content">
+        {tab === 'orders' && <Orders />}
+        {tab === 'stats' && <Stats />}
+        {tab === 'menu' && <MenuEditor />}
+        {tab === 'customers' && <Customers />}
+        {tab === 'settings' && <SettingsForm />}
+      </main>
+
+      {/* ĐIỀU HƯỚNG: dính đáy màn hình điện thoại cho ngón cái chạm tới khi
+          cầm một tay; khổ máy tính trả về một dải nằm ngay dưới thanh trên. */}
       <nav className="admin-nav-tabs">
         {(Object.keys(TAB_CONFIG) as Tab[]).map((t) => (
           <button
@@ -97,15 +108,6 @@ export default function Admin() {
           </button>
         ))}
       </nav>
-
-      {/* NỘI DUNG TỪNG TAB */}
-      <main className="admin-main-content">
-        {tab === 'orders' && <Orders />}
-        {tab === 'stats' && <Stats />}
-        {tab === 'menu' && <MenuEditor />}
-        {tab === 'customers' && <Customers />}
-        {tab === 'settings' && <SettingsForm />}
-      </main>
     </div>
   )
 }

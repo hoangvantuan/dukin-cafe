@@ -109,20 +109,32 @@ export default function Orders() {
 
   return (
     <div className="orders-container">
-      {/* HAI CHẾ ĐỘ XEM TRONG CÙNG TAB ĐƠN HÀNG */}
-      <div className="scope-tabs view-switch">
-        <button
-          className={`scope-tab ${view === 'list' ? 'active' : ''}`}
-          onClick={() => setView('list')}
-        >
-          Danh sách đơn
-        </button>
-        <button
-          className={`scope-tab ${view === 'brew' ? 'active' : ''}`}
-          onClick={() => setView('brew')}
-        >
-          Bảng pha chế
-        </button>
+      {/* HAI CHẾ ĐỘ XEM TRONG CÙNG TAB ĐƠN HÀNG, đứng chung hàng với nút nhập
+          hộ để trên điện thoại bớt một dòng trước khi tới Đơn hàng đầu tiên. */}
+      <div className="orders-view-row">
+        <div className="scope-tabs view-switch">
+          <button
+            className={`scope-tab ${view === 'list' ? 'active' : ''}`}
+            onClick={() => setView('list')}
+          >
+            Danh sách đơn
+          </button>
+          <button
+            className={`scope-tab ${view === 'brew' ? 'active' : ''}`}
+            onClick={() => setView('brew')}
+          >
+            Bảng pha chế
+          </button>
+        </div>
+
+        {view === 'list' && (
+          <button
+            className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
+            onClick={() => setShowManual((v) => !v)}
+          >
+            {showManual ? '✕ Đóng form nhập' : '+ Nhập hộ đơn (Zalo)'}
+          </button>
+        )}
       </div>
 
       {error && <div className="admin-error-alert">{error}</div>}
@@ -163,13 +175,6 @@ export default function Orders() {
                 </button>
               </div>
             )}
-
-            <button
-              className={`btn-admin-primary ${showManual ? 'active-toggle' : ''}`}
-              onClick={() => setShowManual((v) => !v)}
-            >
-              {showManual ? '✕ Đóng form nhập' : '+ Nhập hộ đơn (Zalo)'}
-            </button>
           </div>
 
           {/* KPI METRIC CARDS */}

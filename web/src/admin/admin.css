@@ -1522,3 +1522,280 @@ body {
   font-size: 16px;
   color: var(--dk-gold-700);
 }
+
+/* ============ BỐ CỤC ĐIỆN THOẠI CHO TRANG QUẢN LÝ ============
+   Chủ quán xử lý Đơn hàng bằng một tay trong lúc đang pha, nên khổ hẹp đưa
+   điều hướng xuống đáy màn hình và thu số liệu về một dòng, để Đơn hàng đầu
+   tiên hiện ngay không phải cuộn. Khổ máy tính giữ nguyên dải điều hướng nằm
+   ngay dưới thanh trên. */
+
+/* Thanh điều hướng đứng sau nội dung trong DOM để trên điện thoại người đọc
+   gặp Đơn hàng trước; khổ máy tính dùng thứ tự hiển thị kéo nó về chỗ cũ. */
+.admin-layout {
+  display: flex;
+  flex-direction: column;
+}
+.admin-topbar {
+  order: 1;
+}
+.admin-nav-tabs {
+  order: 2;
+}
+.admin-main-content {
+  order: 3;
+}
+
+/* Hai chế độ xem và nút nhập hộ đơn đứng chung một hàng. */
+.orders-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--dk-space-2-5);
+  margin-bottom: var(--dk-space-4);
+}
+.view-switch {
+  margin-bottom: 0;
+}
+
+/* Tiêu đề mục không bị bóp chữ khi dòng phụ bên phải dài: cho dòng phụ tự
+   xuống hàng thay vì ép tên mục vỡ chữ. */
+.section-header {
+  flex-wrap: wrap;
+}
+.section-header h2 {
+  flex-shrink: 0;
+}
+
+/* Bảng dài hơn khổ màn thì tự cuộn ngang trong khung, không đẩy vỡ trang. */
+.admin-table-wrapper {
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .admin-layout {
+    padding: 12px 12px calc(76px + env(safe-area-inset-bottom));
+  }
+
+  /* Thanh trên thu gọn, nhường chiều cao cho Đơn hàng. */
+  .admin-topbar {
+    padding: 10px 12px;
+    margin-bottom: var(--dk-space-3);
+    border-radius: var(--dk-radius-md);
+  }
+  .admin-brand-tag {
+    display: none;
+  }
+  .admin-brand-name {
+    font-size: 13.5px;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+  }
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+  .admin-brand {
+    gap: var(--dk-space-2);
+  }
+  .admin-top-actions {
+    gap: var(--dk-space-2);
+  }
+  .btn-view-store,
+  .btn-logout {
+    font-size: 11.5px;
+    padding: 9px 9px;
+  }
+
+  /* Điều hướng dính đáy: các mục chia đều, mỗi mục chạm được bằng ngón cái. */
+  .admin-nav-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 4px 2px calc(4px + env(safe-area-inset-bottom));
+    background: var(--dk-brown-800);
+    border-top: 1px solid var(--dk-brown-700);
+    box-shadow: 0 -4px 16px rgba(27, 18, 12, 0.28);
+    overflow-x: visible;
+  }
+  .admin-tab-btn {
+    position: relative;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 2px;
+    min-height: 56px;
+    padding: 6px 2px;
+    background: transparent;
+    border: none;
+    border-radius: var(--dk-radius-sm);
+    color: #cbbba9;
+    font-size: 10.5px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+  .admin-tab-btn.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .tab-icon {
+    font-size: 18px;
+  }
+  .admin-tab-btn .tab-badge {
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    margin-left: 5px;
+    min-width: 17px;
+    height: 17px;
+    font-size: 10.5px;
+  }
+
+  /* Bốn thẻ số liệu thu về một dòng; tiền vẫn viết đủ dạng 165.000đ. */
+  .kpi-metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: var(--dk-space-3);
+  }
+  .kpi-card {
+    padding: 8px 7px;
+    gap: 2px;
+    border-radius: var(--dk-radius-md);
+  }
+  .kpi-title {
+    font-size: 9.5px;
+    letter-spacing: 0;
+    line-height: 1.2;
+    min-height: 23px;
+  }
+  .kpi-value {
+    font-size: 13.5px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .kpi-hint {
+    display: none;
+  }
+
+  /* Khung tab Đơn hàng: mỗi hàng một việc, hai nút chia đôi bề ngang. */
+  .orders-view-row,
+  .orders-top-control {
+    gap: var(--dk-space-2);
+    margin-bottom: var(--dk-space-3);
+  }
+  .orders-view-row .view-switch,
+  .orders-view-row .btn-admin-primary,
+  .orders-top-control .scope-tabs,
+  .orders-top-control .date-picker-wrap {
+    flex: 1 1 100%;
+  }
+  .scope-tabs {
+    display: flex;
+  }
+  .scope-tab {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+  .orders-view-row .btn-admin-primary {
+    justify-content: center;
+  }
+
+  /* Cỡ chạm tối thiểu 44px và chữ nhập liệu 16px: chạm trúng ngay và iOS
+     không tự phóng to trang khi con trỏ vào ô nhập. */
+  .admin-input,
+  .admin-select,
+  .admin-textarea {
+    font-size: 16px;
+    padding: 11px 12px;
+    min-height: 44px;
+    width: 100%;
+  }
+  .login-field input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .date-picker-wrap {
+    padding: 4px 10px;
+    min-width: 0;
+  }
+  .date-input {
+    font-size: 16px;
+    min-height: 44px;
+    padding: 0;
+    width: 100%;
+  }
+  .btn-today {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .btn-admin-primary,
+  .btn-admin-light,
+  .btn-admin-danger {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .btn-action {
+    flex: 1 1 auto;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Form Nhập hộ đơn: mỗi ô một dòng, nút cộng trừ đủ to để bấm. */
+  .manual-order-panel,
+  .admin-editor-card {
+    padding: var(--dk-space-3-5);
+  }
+  .manual-form-grid,
+  .editor-form-grid,
+  .item-selector-grid {
+    grid-template-columns: 1fr;
+    gap: var(--dk-space-2-5);
+  }
+  .admin-stepper {
+    padding: 2px 6px;
+  }
+  .admin-stepper button {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+  .admin-stepper .val {
+    min-width: 32px;
+    font-size: 15px;
+  }
+
+  /* Bảng nhiều cột giữ bề rộng đọc được rồi cuộn ngang trong khung, thay vì
+     bóp mỗi cột lại còn một chữ mỗi dòng. Bảng pha chế chỉ ba cột nên vừa
+     màn, không cần cuộn. */
+  .admin-table {
+    min-width: 640px;
+  }
+  .brew-table {
+    min-width: 0;
+  }
+
+  /* Thẻ Đơn hàng và bảng đọc gọn hơn trên khổ hẹp. */
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-order-card {
+    padding: var(--dk-space-3-5);
+  }
+  .section-header h2 {
+    font-size: 16px;
+  }
+}
