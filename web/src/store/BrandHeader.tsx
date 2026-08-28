@@ -1,9 +1,9 @@
 /**
- * Đầu trang thương hiệu của Trang bán, ba dạng dùng ở ba màn khác nhau:
- * màn Thực đơn, màn hoàn tất và biểu mẫu đặt hàng.
+ * Đầu trang thương hiệu của Trang bán, hai dạng: một cho trang đặt hàng,
+ * một cho màn hoàn tất.
  */
 
-/** Dạng đầy đủ, dùng ở màn Thực đơn. */
+/** Dạng đầy đủ, dùng ở đầu trang đặt hàng. */
 export function MenuBrandHeader() {
   return (
     <header className="brand-header">
@@ -26,19 +26,6 @@ export function ReceiptBrandHeader() {
       <span className="brand-sub">DUKIN CAFE &amp; BISTRO</span>
       <h1 className="brand-title">L'Art du Café</h1>
       <p className="brand-quote">« Cà phê là nghệ thuật, DUKIN là chữ ký. »</p>
-    </header>
-  )
-}
-
-/** Dạng thu nhỏ kèm lối quay lại Thực đơn, dùng ở biểu mẫu đặt hàng. */
-export function FormBrandHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <header className="brand-header compact">
-      <button className="btn-back-link" onClick={onBack}>
-        ← Quay lại thực đơn
-      </button>
-      <h1 className="brand-title-small">Xác nhận Đơn hàng</h1>
-      <p className="brand-quote">« Chậm một nhịp, đậm một đời. »</p>
     </header>
   )
 }

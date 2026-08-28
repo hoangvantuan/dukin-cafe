@@ -7,16 +7,28 @@ interface MenuCardProps {
   /** Số hiệu Món trên thực đơn, đã đệm 0 ở đầu như bản in. */
   itemNum: string
   selection: Selection
+  /** Quán còn nhận đơn hôm nay; hết chỗ thì nút thêm vào khay khóa lại. */
+  canAdd: boolean
   onToggleOption: (item: MenuItem, groupId: number, optionId: number, multiple: boolean) => void
   onChangeQty: (itemId: number, delta: number) => void
   onAdd: (itemId: number) => void
 }
 
-/** Thẻ một Món: số hiệu, tên, mô tả, giá, nhóm Tùy chọn và nút thêm vào khay. */
+/**
+ * Chữ đại diện khi Món chưa có ảnh: bỏ tiền tố kiểu "D." của bản in để lấy
+ * đúng chữ cái của tên Món, nếu không cả bốn Món đều ra chung một chữ.
+ */
+function chuDaiDien(name: string): string {
+  const conLai = name.replace(/^\s*\p{L}?\.\s*/u, '').trim()
+  return (conLai || name).slice(0, 1).toUpperCase()
+}
+
+/** Thẻ một Món: số hiệu, ảnh, tên, mô tả, giá, nhóm Tùy chọn và nút thêm vào khay. */
 export default function MenuCard({
   item,
   itemNum,
   selection,
+  canAdd,
   onToggleOption,
   onChangeQty,
   onAdd,
@@ -27,6 +39,16 @@ export default function MenuCard({
     <article className="menu-card">
       <div className="menu-card-top">
         <span className="item-num">{itemNum}</span>
+        {/* Ảnh vuông đứng ngay sau số hiệu, đúng thứ tự của tờ thực đơn in.
+            Món chưa có ảnh vẫn giữ đúng chỗ đó bằng một ô chữ nền trung tính,
+            để chủ quán không phải chụp đủ bốn Món mới dám dùng. */}
+        {item.image ? (
+          <img className="item-thumb" src={item.image} alt={`Ảnh ${item.name}`} loading="lazy" />
+        ) : (
+          <div className="item-thumb item-thumb-chu" aria-hidden="true">
+            {chuDaiDien(item.name)}
+          </div>
+        )}
         <h2 className="item-name-vi">
           {item.name}
           {item.nameFr && <span className="item-name-fr">~ {item.nameFr} ~</span>}
@@ -85,6 +107,7 @@ export default function MenuCard({
         <button
           type="button"
           className="bistro-btn btn-gold btn-add-item"
+          disabled={!canAdd}
           onClick={() => onAdd(item.id)}
         >
           <span className="btn-icon">☕</span>

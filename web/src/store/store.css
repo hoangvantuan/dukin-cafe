@@ -95,13 +95,6 @@ body {
   letter-spacing: 1px;
   line-height: 1.15;
 }
-.brand-title-small {
-  font-family: var(--dk-font-display);
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--dk-brown-700);
-  margin-top: var(--dk-space-2);
-}
 .brand-sub {
   display: block;
   font-family: var(--dk-font-brand);
@@ -198,6 +191,28 @@ body {
   margin-top: var(--dk-space-0-5);
   min-width: 24px;
 }
+/* Ảnh Món: ô vuông cạnh số hiệu, giữ nguyên thứ tự của tờ thực đơn in. */
+.item-thumb {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: var(--dk-radius-sm);
+  border: 1px solid var(--dk-parchment-600);
+  background: var(--dk-parchment-300);
+  object-fit: cover;
+}
+/* Món chưa có ảnh: ô chữ trên nền trung tính, không để trống một khoảng. */
+.item-thumb-chu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--dk-font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--dk-brown-300);
+  background: var(--dk-parchment-400);
+}
+
 .item-name-vi {
   flex: 1;
   font-family: var(--dk-font-display);
@@ -486,6 +501,7 @@ body {
 .tray-label {
   font-size: 12px;
   color: #d1c0aa;
+  white-space: nowrap;
 }
 .tray-price {
   font-family: var(--dk-font-display);
@@ -535,33 +551,38 @@ body {
 }
 
 /* ========================================================================= */
-/* BƯỚC 2: FORM XÁC NHẬN ĐẶT HÀNG                                            */
+/* PHẦN ĐẶT HÀNG NGAY TRÊN TRANG (KHAY MÓN + THÔNG TIN NHẬN HÀNG)            */
 /* ========================================================================= */
-.btn-back-link {
-  background: none;
-  border: none;
-  color: var(--dk-gold-600);
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: var(--dk-space-1) 0;
-  display: inline-block;
-  margin-bottom: var(--dk-space-2);
+.order-section {
+  margin-top: var(--dk-space-8);
 }
-.btn-back-link:hover {
-  text-decoration: underline;
+.section-heading {
+  font-family: var(--dk-font-display);
+  font-size: 18px;
+  font-weight: 700;
   color: var(--dk-brown-700);
+  padding-bottom: var(--dk-space-2);
+  margin-bottom: var(--dk-space-4);
+  border-bottom: 1px solid rgba(197, 158, 88, 0.35);
 }
 
-/* TÓM TẮT ĐƠN TRONG FORM */
+/* KHAY MÓN ĐÃ CHỌN */
 .cart-summary-card {
   background: var(--dk-parchment-50);
   border: 1px solid var(--dk-parchment-600);
   border-radius: var(--dk-radius-md);
   padding: var(--dk-space-4) var(--dk-space-4-5);
-  margin-bottom: var(--dk-space-6);
   box-shadow: var(--dk-shadow-sm);
+}
+.cart-empty-hint {
+  background: var(--dk-parchment-50);
+  border: 1px dashed var(--dk-parchment-600);
+  border-radius: var(--dk-radius-md);
+  padding: var(--dk-space-4) var(--dk-space-4-5);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--dk-brown-300);
+  text-align: center;
 }
 .card-header {
   display: flex;
@@ -620,6 +641,23 @@ body {
   color: var(--dk-amber-600);
   white-space: nowrap;
 }
+.cart-item-remove {
+  background: none;
+  border: 1px solid var(--dk-parchment-600);
+  border-radius: var(--dk-radius-sm);
+  color: var(--dk-brown-300);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.cart-item-remove:hover {
+  color: #c93b2b;
+  border-color: #c93b2b;
+}
 .cart-summary-total {
   display: flex;
   justify-content: space-between;
@@ -671,6 +709,26 @@ body {
 .bistro-input:focus, .bistro-textarea:focus {
   border-color: var(--dk-gold-400);
   box-shadow: 0 0 0 3px rgba(197, 158, 88, 0.2);
+}
+.bistro-input.has-error {
+  border-color: #c93b2b;
+}
+.field-error {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #c93b2b;
+  line-height: 1.5;
+}
+.form-error-box {
+  background: rgba(201, 59, 43, 0.08);
+  border: 1px solid rgba(201, 59, 43, 0.4);
+  border-radius: var(--dk-radius-sm);
+  padding: var(--dk-space-2-5) var(--dk-space-3);
+}
+.form-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dk-brown-300);
 }
 
 /* CHỌN CÁCH NHẬN / THANH TOÁN (MODE BUTTONS) */

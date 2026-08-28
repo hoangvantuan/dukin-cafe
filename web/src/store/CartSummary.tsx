@@ -8,21 +8,23 @@ interface CartSummaryProps {
   cartCount: number
   cartTotal: number
   onChangeCartQty: (key: string, delta: number) => void
+  onRemoveLine: (key: string) => void
 }
 
-/** Danh sách Món trong khay kèm nút tăng giảm và tổng tiền, đặt trên biểu mẫu. */
+/** Khay Món đã chọn, sửa số lượng và bỏ Món ngay trên trang. */
 export default function CartSummary({
   cart,
   itemsById,
   cartCount,
   cartTotal,
   onChangeCartQty,
+  onRemoveLine,
 }: CartSummaryProps) {
   return (
-    <section className="cart-summary-card">
+    <div className="cart-summary-card">
       <div className="card-header">
-        <span className="card-title">Khay cà phê của bạn</span>
-        <span className="card-count">{cartCount} món</span>
+        <span className="card-title">Món đã chọn</span>
+        <span className="card-count">{cartCount} ly</span>
       </div>
       <div className="cart-item-list">
         {cart.map((l) => {
@@ -37,14 +39,22 @@ export default function CartSummary({
               <div className="cart-item-ctrl">
                 <span className="cart-item-price">{fmtVndShort(linePrice(item, l.optionIds) * l.qty)}</span>
                 <div className="bistro-stepper mini">
-                  <button onClick={() => onChangeCartQty(l.key, -1)} aria-label="Giảm">
+                  <button type="button" onClick={() => onChangeCartQty(l.key, -1)} aria-label="Giảm">
                     −
                   </button>
                   <span className="step-val">{l.qty}</span>
-                  <button onClick={() => onChangeCartQty(l.key, 1)} aria-label="Tăng">
+                  <button type="button" onClick={() => onChangeCartQty(l.key, 1)} aria-label="Tăng">
                     +
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className="cart-item-remove"
+                  aria-label={`Bỏ ${item.name} khỏi khay`}
+                  onClick={() => onRemoveLine(l.key)}
+                >
+                  ✕
+                </button>
               </div>
             </div>
           )
@@ -54,6 +64,6 @@ export default function CartSummary({
         <span>Tổng cộng</span>
         <span className="total-gold">{fmtVndShort(cartTotal)}</span>
       </div>
-    </section>
+    </div>
   )
 }

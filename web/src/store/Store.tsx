@@ -3,14 +3,32 @@ import { api, type PlaceOrderBody } from '../api'
 import type { Intake, MenuItem } from '../types'
 import { linePrice, type CartLine, type PaymentMethod, type ReceiveMode, type Selection } from './cart'
 import DoneView from './DoneView'
+import LoadErrorView from './LoadErrorView'
 import MenuList from './MenuList'
-import OrderForm from './OrderForm'
+import OrderForm, { type FormErrors } from './OrderForm'
 import StickyBar from './StickyBar'
+import StorePage from './StorePage'
+import Toast from './Toast'
 import './store.css'
 
 /**
- * Trang bán: giữ toàn bộ trạng thái đặt hàng của Khách và ghép các khối
- * giao diện lại. Mọi phần hiển thị nằm ở các thành phần con.
+ * Cuộn tới chỗ còn thiếu rồi đặt con trỏ vào đó. Hoãn một nhịp để phần tử kịp
+ * hiện sau khi trạng thái lỗi đổi, chẳng hạn ô báo lỗi gửi đơn.
+ */
+function focusField(id: string): void {
+  window.setTimeout(() => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (el instanceof HTMLInputElement) {
+      window.setTimeout(() => el.focus({ preventScroll: true }), 400)
+    }
+  }, 0)
+}
+
+/**
+ * Trang bán: một trang cuộn liền gồm Thực đơn, khay Món và biểu mẫu nhận hàng,
+ * kèm thanh dính đáy. Chỉ màn hoàn tất là màn riêng, để Khách quét mã yên tĩnh.
  */
 export default function Store() {
   const [items, setItems] = useState<MenuItem[]>([])
@@ -19,14 +37,14 @@ export default function Store() {
   const [loadError, setLoadError] = useState('')
   const [sel, setSel] = useState<Record<number, Selection>>({})
   const [cart, setCart] = useState<CartLine[]>([])
-  const [step, setStep] = useState<'menu' | 'form' | 'done'>('menu')
+  const [step, setStep] = useState<'order' | 'done'>('order')
   const [name, setName] = useState(() => localStorage.getItem('dukin_name') ?? '')
   const [mode, setMode] = useState<ReceiveMode>('pickup')
   const [location, setLocation] = useState(() => localStorage.getItem('dukin_location') ?? '')
   const [payment, setPayment] = useState<PaymentMethod>('transfer')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [errors, setErrors] = useState<FormErrors>({})
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [result, setResult] = useState<{ id: number; total: number; qrUrl: string | null } | null>(null)
 
@@ -56,6 +74,11 @@ export default function Store() {
   function showToast(msg: string) {
     setToastMessage(msg)
     window.setTimeout(() => setToastMessage(null), 2200)
+  }
+
+  /** Khách vừa sửa chỗ nào thì xóa lỗi của chỗ đó, không bắt đọc lại lời nhắc cũ. */
+  function clearError(field: keyof FormErrors): void {
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev))
   }
 
   function toggleOption(item: MenuItem, groupId: number, optionId: number, multiple: boolean): void {
@@ -89,6 +112,7 @@ export default function Store() {
       if (found) return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + s.qty } : l))
       return [...prev, { key, itemId, qty: s.qty, optionIds: s.optionIds }]
     })
+    clearError('cart')
     if (item) {
       showToast(`Đã thêm ${s.qty} × ${item.name} vào khay!`)
     }
@@ -102,16 +126,28 @@ export default function Store() {
     )
   }
 
+  function removeLine(key: string): void {
+    setCart((prev) => prev.filter((l) => l.key !== key))
+  }
+
   async function submit(): Promise<void> {
-    setFormError('')
+    // Thiếu chỗ nào thì báo đúng chỗ đó rồi cuộn tới, không gom lỗi về một nơi.
+    if (cart.length === 0) {
+      setErrors({ cart: 'Khay còn trống, mời bạn chọn Món ở Thực đơn phía trên.' })
+      focusField('dukin-khay')
+      return
+    }
     if (!name.trim()) {
-      setFormError('Vui lòng nhập tên của bạn để quán tiện xưng hô.')
+      setErrors({ name: 'Vui lòng nhập tên của bạn để quán tiện xưng hô.' })
+      focusField('dukin-ten')
       return
     }
     if (mode === 'delivery' && !location.trim()) {
-      setFormError('Vui lòng nhập vị trí giao hàng (Tầng, Phòng làm việc).')
+      setErrors({ location: 'Vui lòng nhập Vị trí giao để quán mang cà phê tới đúng chỗ.' })
+      focusField('dukin-vi-tri')
       return
     }
+    setErrors({})
     const body: PlaceOrderBody = {
       customerName: name.trim(),
       receiveMode: mode,
@@ -131,7 +167,8 @@ export default function Store() {
       setStep('done')
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Đặt hàng chưa thành công, vui lòng thử lại.')
+      setErrors({ submit: e instanceof Error ? e.message : 'Đặt hàng chưa thành công, vui lòng thử lại.' })
+      focusField('dukin-loi-gui')
     } finally {
       setSubmitting(false)
     }
@@ -141,42 +178,17 @@ export default function Store() {
     setCart([])
     setNote('')
     setResult(null)
-    setStep('menu')
+    setErrors({})
+    setStep('order')
     void api.intake().then(setIntake).catch(() => undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function openForm(): void {
-    setStep('form')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  if (loadError) return <LoadErrorView message={loadError} />
 
-  if (loadError) {
+  if (step === 'done' && result) {
     return (
       <div className="dukin-viewport">
-        <div className="bistro-board error-board">
-          <div className="error-icon">☕</div>
-          <h2>Không thể tải thực đơn</h2>
-          <p className="error-desc">{loadError}</p>
-          <button className="bistro-btn btn-gold" onClick={() => window.location.reload()}>
-            Tải lại trang
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="dukin-viewport">
-      {/* Thông báo nổi (Toast) */}
-      {toastMessage && (
-        <div className="dukin-toast">
-          <span className="toast-icon">✨</span>
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {step === 'done' && result && (
         <DoneView
           result={result}
           name={name}
@@ -186,47 +198,57 @@ export default function Store() {
           zaloLink={zaloLink}
           onReset={resetAll}
         />
-      )}
+      </div>
+    )
+  }
 
-      {step === 'form' && (
+  return (
+    <div className="dukin-viewport">
+      {toastMessage && <Toast message={toastMessage} />}
+
+      <StorePage intake={intake}>
+        <MenuList
+          items={items}
+          sel={sel}
+          canAdd={intake.open}
+          onToggleOption={toggleOption}
+          onChangeQty={setItemQty}
+          onAdd={addToCart}
+        />
         <OrderForm
           cart={cart}
           itemsById={itemsById}
           cartCount={cartCount}
           cartTotal={cartTotal}
           name={name}
-          setName={setName}
+          onNameChange={(v) => {
+            setName(v)
+            clearError('name')
+          }}
           mode={mode}
-          setMode={setMode}
+          onModeChange={setMode}
           location={location}
-          setLocation={setLocation}
+          onLocationChange={(v) => {
+            setLocation(v)
+            clearError('location')
+          }}
           payment={payment}
-          setPayment={setPayment}
+          onPaymentChange={setPayment}
           note={note}
-          setNote={setNote}
-          formError={formError}
-          submitting={submitting}
-          intakeOpen={intake.open}
-          onBack={() => setStep('menu')}
+          onNoteChange={setNote}
+          errors={errors}
           onChangeCartQty={changeCartQty}
-          onSubmit={() => void submit()}
+          onRemoveLine={removeLine}
         />
-      )}
+      </StorePage>
 
-      {step === 'menu' && (
-        <MenuList
-          items={items}
-          sel={sel}
-          intake={intake}
-          onToggleOption={toggleOption}
-          onChangeQty={setItemQty}
-          onAdd={addToCart}
-        />
-      )}
-
-      {step === 'menu' && cart.length > 0 && (
-        <StickyBar cartCount={cartCount} cartTotal={cartTotal} onOpenForm={openForm} />
-      )}
+      <StickyBar
+        cartCount={cartCount}
+        cartTotal={cartTotal}
+        intakeOpen={intake.open}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+      />
     </div>
   )
 }
