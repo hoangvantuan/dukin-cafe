@@ -1,0 +1,83 @@
+/* ============================================================
+   Token dùng chung cho Trang bán và Trang quản lý
+   ------------------------------------------------------------
+   Đây là nơi duy nhất định nghĩa giá trị gốc của màu, mặt chữ,
+   bán kính, thang khoảng cách và bóng đổ. Hai tệp store.css và
+   admin.css chỉ tham chiếu, không tự định nghĩa lại.
+
+   Thang màu đánh số theo độ sáng: số nhỏ là nhạt, số lớn là đậm.
+   ============================================================ */
+
+:root {
+  /* --- Giấy da: nền sáng của Trang quản lý và bảng thực đơn --- */
+  --dk-parchment-50: #fffdf9;
+  --dk-parchment-100: #fdf5e6;
+  --dk-parchment-200: #faf4e8;
+  --dk-parchment-300: #f5f2eb;
+  --dk-parchment-400: #f0e9de;
+  --dk-parchment-500: #e4dcce;
+  --dk-parchment-600: #e0d0b7;
+
+  /* --- Vàng đồng: nét trang trí, viền, nhãn giá --- */
+  --dk-gold-200: #e6cb95;
+  --dk-gold-400: #c59e58;
+  --dk-gold-500: #b38538;
+  --dk-gold-600: #8c672b;
+  --dk-gold-700: #8c6020;
+  --dk-gold-800: #6c4214;
+
+  /* --- Hổ phách: nhấn ấm hơn vàng đồng --- */
+  --dk-amber-600: #945d27;
+
+  /* --- Nâu cà phê: chữ, nền tối, khối espresso --- */
+  --dk-brown-300: #826c59;
+  --dk-brown-400: #796a5b;
+  --dk-brown-500: #4e3524;
+  --dk-brown-700: #3a2213;
+  --dk-brown-800: #2f1d13;
+  --dk-brown-850: #2b1c11;
+  --dk-brown-950: #1b120c;
+
+  /* --- Nút vàng: cùng một dải chuyển màu ở cả hai trang --- */
+  --dk-gradient-gold: linear-gradient(135deg, #a47032 0%, #7d4f1c 100%);
+  --dk-gradient-gold-hover: linear-gradient(135deg, #b57e3c 0%, #8f5b22 100%);
+
+  /* --- Mặt chữ --- */
+  --dk-font-display: 'Playfair Display', Georgia, serif;
+  --dk-font-brand: 'Cinzel', serif;
+  --dk-font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* --- Bán kính --- */
+  --dk-radius-xs: 4px;
+  --dk-radius-sm: 6px;
+  --dk-radius-md: 8px;
+  --dk-radius-lg: 10px;
+  --dk-radius-xl: 12px;
+  --dk-radius-2xl: 14px;
+  --dk-radius-pill: 999px;
+  --dk-radius-circle: 50%;
+
+  /* --- Thang khoảng cách, bước gốc 4px, nửa bước ghi hậu tố -5 --- */
+  --dk-space-0-5: 2px;
+  --dk-space-1: 4px;
+  --dk-space-1-5: 6px;
+  --dk-space-2: 8px;
+  --dk-space-2-5: 10px;
+  --dk-space-3: 12px;
+  --dk-space-3-5: 14px;
+  --dk-space-4: 16px;
+  --dk-space-4-5: 18px;
+  --dk-space-5: 20px;
+  --dk-space-6: 24px;
+  --dk-space-7: 28px;
+  --dk-space-8: 32px;
+  --dk-space-9: 36px;
+  --dk-space-10: 40px;
+  --dk-space-12: 48px;
+
+  /* --- Bóng đổ --- */
+  --dk-shadow-sm: 0 2px 8px rgba(39, 22, 11, 0.06);
+  --dk-shadow-md: 0 8px 24px rgba(39, 22, 11, 0.12);
+  --dk-shadow-card: 0 4px 16px rgba(47, 29, 19, 0.06);
+  --dk-shadow-tray: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
