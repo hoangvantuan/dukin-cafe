@@ -11,6 +11,11 @@
 >   chuyện 16 tới 19; Thiết kế mục Khung nhận hàng; Kế hoạch mục truyền số ngày đặt
 >   trước; Kiểm thử mục mô đun tính Khung nhận hàng).
 > - Giới hạn đơn theo khung, thay bằng Trần đơn mỗi ngày trong Cấu hình.
+> - Khóa Cấu hình "số ngày đặt trước" cùng mọi đoạn còn nhắc nó (Thiết kế mục
+>   Cấu hình ba khóa, Kế hoạch mục truyền số ngày đặt trước và đoạn rút bảy xuống
+>   ba, Kiểm thử mục mô đun tính Khung nhận hàng): Đơn hàng luôn là của chính
+>   ngày đặt, Khách không chọn ngày khác. Cấu hình chỉ còn thêm email liên hệ và
+>   danh sách Người pha.
 >
 > Những mục sau **vẫn còn hiệu lực nhưng đổi cách gộp**:
 >

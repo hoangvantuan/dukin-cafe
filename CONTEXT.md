@@ -46,6 +46,10 @@ _Avoid_: đơn chèn, đơn tay
 Số Đơn hàng tối đa quán nhận trong một ngày, do chủ quán đặt; chạm trần thì Trang bán ngưng nhận cho tới hôm sau. Đặt 0 là không giới hạn.
 _Avoid_: quota, capacity, sức chứa
 
+**Ngày đặt**:
+Ngày Đơn hàng được pha và giao; luôn là chính ngày Khách đặt, không chọn ngày mai.
+_Avoid_: đặt trước nhiều ngày, hẹn ngày nhận, dải ngày
+
 **Cách nhận hàng**:
 Lựa chọn của Khách khi đặt: Nhận tại quán hoặc Giao tận nơi.
 _Avoid_: phương thức giao, ship
@@ -65,6 +69,10 @@ _Avoid_: địa chỉ
 **Hàng đợi xử lý**:
 Danh sách mọi Đơn hàng chưa Hoàn tất và chưa Hủy, không phân theo ngày; đây là màn hình mặc định của Trang quản lý.
 _Avoid_: pending list, inbox, backlog
+
+**Bảng pha chế**:
+Bản gộp các Đơn hàng đang chờ xử lý theo từng cặp Món và Tùy chọn, kèm tổng số ly phải pha; chỉ để xem, không đánh dấu đã pha.
+_Avoid_: kitchen view, ticket, lệnh pha
 
 **Trạng thái Đơn hàng**:
 Một trong: Mới, Đã xác nhận, Đã thu tiền, Hoàn tất, Đã hủy; chỉ chủ quán thực hiện việc chuyển trạng thái.
@@ -97,6 +105,10 @@ _Avoid_: thread, notification, alert
 **Sửa đơn**:
 Việc chủ quán đổi nội dung một Đơn hàng đã đặt: Món, Tùy chọn, số lượng, Cách nhận hàng, Vị trí giao, ghi chú, Cách thanh toán. Không đổi Trạng thái Đơn hàng. Mỗi lần sửa, Bot DUKIN trả lời vào Luồng Đơn hàng nêu rõ trước và sau.
 _Avoid_: edit, cập nhật đơn, chỉnh sửa
+
+**Đơn lần trước**:
+Nội dung Đơn hàng thành công gần nhất của Khách, lưu tại máy của chính Khách; Món không còn bán bị bỏ khi dựng lại.
+_Avoid_: reorder, đơn mẫu, lịch sử đơn
 
 **Thẻ đơn hàng**:
 Tin nhắn dạng thẻ (Adaptive Card) Bot DUKIN gửi lên Teams, gồm mã đơn, danh sách Món, tổng tiền, Cách nhận hàng, giờ đặt và phần gắn thẻ người liên quan.
