@@ -8,6 +8,11 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   accountNo: '',
   accountName: '',
   zaloLink: '',
+  /**
+   * Email liên hệ in trên trang Quyền riêng tư và trang Điều khoản sử dụng.
+   * Rỗng thì hai trang đó lấy đường Zalo làm kênh liên hệ.
+   */
+  contactEmail: '',
   /** Giới hạn số đơn nhận trong một ngày; 0 là không giới hạn. */
   dailyCapacity: '0',
   teamsTenantId: '',

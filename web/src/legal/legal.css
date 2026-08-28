@@ -1,0 +1,173 @@
+/* Hai trang pháp lý: dùng lại bảng thực đơn bistro của Trang bán, chỉ thêm
+   phần chữ dài mà Trang bán không có. Màu, mặt chữ, khoảng cách lấy nguyên
+   bộ token dùng chung ở styles/tokens.css. */
+
+.legal-viewport {
+  padding-bottom: var(--dk-space-10);
+}
+
+.legal-board {
+  width: 720px;
+}
+
+.legal-header {
+  margin-bottom: var(--dk-space-4-5);
+}
+
+/* NÚT CHUYỂN BẢN TIẾNG VIỆT VÀ TIẾNG ANH */
+.legal-lang-switch {
+  display: inline-flex;
+  margin-top: var(--dk-space-3);
+  border: 1px solid var(--dk-gold-400);
+  border-radius: var(--dk-radius-pill);
+  overflow: hidden;
+  background: var(--dk-parchment-50);
+}
+.legal-lang-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--dk-font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--dk-gold-600);
+  padding: var(--dk-space-1-5) var(--dk-space-4-5);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.legal-lang-btn + .legal-lang-btn {
+  border-left: 1px solid var(--dk-parchment-600);
+}
+.legal-lang-btn:hover:not(.is-on) {
+  background: rgba(197, 158, 88, 0.12);
+}
+.legal-lang-btn.is-on {
+  background: var(--dk-gradient-gold);
+  color: var(--dk-parchment-50);
+  border-left-color: var(--dk-gold-800);
+}
+
+.legal-updated {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  color: var(--dk-brown-300);
+  margin-top: var(--dk-space-2-5);
+}
+
+/* PHẦN CHỮ */
+.legal-intro {
+  font-family: var(--dk-font-display);
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--dk-brown-700);
+  background: var(--dk-parchment-50);
+  border: 1px solid var(--dk-parchment-600);
+  border-left: 3px solid var(--dk-gold-400);
+  border-radius: var(--dk-radius-xs);
+  padding: var(--dk-space-3-5) var(--dk-space-4);
+  margin-bottom: var(--dk-space-6);
+}
+
+.legal-section {
+  margin-bottom: var(--dk-space-6);
+}
+
+.legal-heading {
+  font-family: var(--dk-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dk-brown-700);
+  margin-bottom: var(--dk-space-2);
+  padding-bottom: var(--dk-space-1-5);
+  border-bottom: 1px solid var(--dk-parchment-600);
+}
+
+.legal-para {
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--dk-brown-500);
+  margin-bottom: var(--dk-space-2-5);
+}
+
+.legal-list {
+  list-style: none;
+  margin: var(--dk-space-1) 0 var(--dk-space-2-5);
+}
+.legal-list li {
+  position: relative;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--dk-brown-500);
+  padding-left: var(--dk-space-5);
+  margin-bottom: var(--dk-space-2);
+}
+.legal-list li::before {
+  content: '❦';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--dk-gold-400);
+  font-size: 12px;
+}
+
+/* KÊNH LIÊN HỆ */
+.legal-contact {
+  background: linear-gradient(135deg, rgba(230, 203, 149, 0.22), rgba(197, 158, 88, 0.12));
+  border: 1px solid var(--dk-gold-400);
+  border-radius: var(--dk-radius-sm);
+  padding: var(--dk-space-4) var(--dk-space-4-5) var(--dk-space-3);
+}
+.legal-contact .legal-heading {
+  border-bottom-color: rgba(197, 158, 88, 0.5);
+}
+.legal-channel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dk-space-2-5);
+  font-size: 14.5px;
+  margin-top: var(--dk-space-1-5);
+}
+.legal-channel-label {
+  font-family: var(--dk-font-brand);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dk-gold-600);
+}
+.legal-channel a {
+  color: var(--dk-amber-600);
+  font-weight: 600;
+  word-break: break-all;
+}
+.legal-no-channel {
+  font-style: italic;
+  color: var(--dk-brown-300);
+}
+
+/* ĐƯỜNG QUA TRANG PHÁP LÝ CÒN LẠI */
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dk-space-2-5);
+  margin-top: var(--dk-space-6);
+}
+.legal-nav .bistro-btn {
+  flex: 1;
+  min-width: 200px;
+  text-align: center;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .legal-intro {
+    font-size: 15px;
+  }
+  .legal-heading {
+    font-size: 17px;
+  }
+  .legal-nav .bistro-btn {
+    min-width: 100%;
+  }
+}

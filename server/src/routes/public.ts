@@ -10,7 +10,11 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
   /** Quán còn nhận đơn hôm nay không; Trang bán khóa nút đặt khi đã đủ. */
   app.get('/api/intake', async () => intakeToday())
 
-  app.get('/api/public-config', async () => ({ zaloLink: getSettings().zaloLink }))
+  /** Cấu hình Trang bán và hai trang pháp lý đọc được mà không cần đăng nhập. */
+  app.get('/api/public-config', async () => {
+    const s = getSettings()
+    return { zaloLink: s.zaloLink, contactEmail: s.contactEmail }
+  })
 
   app.post('/api/orders', async (req, reply) => {
     const body = req.body as Record<string, unknown>
